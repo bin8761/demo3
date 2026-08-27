@@ -1155,7 +1155,7 @@ export default function App() {
                                   </div>
                                   <div
                                     className={`mt-1 p-3 rounded-lg max-w-[70%] ${
-                                      isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 dark:bg-gray-800 text-inherit rounded-tl-none'
+                                      isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-[hsl(var(--background))] text-[hsl(var(--text-primary))] border border-[hsl(var(--border))] rounded-tl-none'
                                     }`}
                                   >
                                     {msg.content}
