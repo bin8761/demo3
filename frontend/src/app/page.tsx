@@ -205,14 +205,15 @@ export default function App() {
   const handleSendChatMessage = async () => {
     if (!chatInput.trim() || !chatChannel) return;
     try {
-      await chatApi.sendMessage({
+      const created = await chatApi.sendMessage({
         channelType: chatChannel.type,
         channelId: chatChannel.id,
         senderId: currentUser.id,
+        senderName: currentUser.name,
         content: chatInput
       });
       setChatInput('');
-      fetchChatMessages(chatChannel.type, chatChannel.id);
+      setChatMessages(prev => [...prev, created]);
     } catch (e) {
       messageApi.error('Gửi tin nhắn thất bại');
     }
@@ -1148,8 +1149,8 @@ export default function App() {
                               return (
                                 <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                   <div className="flex items-center gap-2">
-                                    <Avatar size="small">{msg.senderName[0]}</Avatar>
-                                    <Text strong className="text-xs">{msg.senderName}</Text>
+                                    <Avatar size="small">{(msg.senderName || 'U')[0]}</Avatar>
+                                    <Text strong className="text-xs">{msg.senderName || 'Người dùng'}</Text>
                                     <Text type="secondary" className="text-[10px]">{dayjs(msg.createdAt).format('HH:mm')}</Text>
                                   </div>
                                   <div

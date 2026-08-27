@@ -19,11 +19,21 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   ensureInitialized();
   const body = await request.json();
+  const senderId = body.senderId;
+  let senderName = body.senderName;
+  if (!senderName && senderId) {
+    const staffMember = db.staff.find(s => s.id === senderId);
+    if (staffMember) {
+      senderName = staffMember.name;
+    }
+  }
   const newMsg: ChatMessage = {
     id: `CHAT-${Date.now()}`,
     createdAt: new Date().toISOString(),
+    senderName: senderName || 'Người dùng',
     ...body,
   };
   db.chatMessages.push(newMsg);
   return NextResponse.json(newMsg, { status: 201 });
 }
+
