@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { db, ensureInitialized } from '@/lib/db';
 import type { ChatMessage } from '@/lib/types';
