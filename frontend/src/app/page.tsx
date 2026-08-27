@@ -248,47 +248,69 @@ export default function App() {
       if (values.fromDate) values.fromDate = values.fromDate.format('YYYY-MM-DD');
       if (values.toDate) values.toDate = values.toDate.format('YYYY-MM-DD');
 
+      // Optimistic update: dùng response trả về từ API để cập nhật state ngay
       switch (createModal.type) {
-        case 'customer':
-          await customerApi.create(values);
+        case 'customer': {
+          const created = await customerApi.create(values);
+          setCustomers(prev => [...prev, created]);
           break;
-        case 'profile':
-          await serviceProfileApi.create(values);
+        }
+        case 'profile': {
+          const created = await serviceProfileApi.create(values);
+          setProfiles(prev => [...prev, created]);
           break;
-        case 'lawsuit':
-          await lawsuitApi.create(values);
+        }
+        case 'lawsuit': {
+          const created = await lawsuitApi.create(values);
+          setLawsuits(prev => [...prev, created]);
           break;
-        case 'task':
-          await taskApi.create({ ...values, assignerId: currentUser.id });
+        }
+        case 'task': {
+          const created = await taskApi.create({ ...values, assignerId: currentUser.id });
+          setTasks(prev => [...prev, created]);
           break;
-        case 'schedule':
-          await scheduleApi.create(values);
+        }
+        case 'schedule': {
+          const created = await scheduleApi.create(values);
+          setSchedules(prev => [...prev, created]);
           break;
-        case 'revenue':
-          await financeApi.createRevenue({ ...values, collectorId: currentUser.id });
+        }
+        case 'revenue': {
+          const created = await financeApi.createRevenue({ ...values, collectorId: currentUser.id });
+          setRevenues(prev => [...prev, created]);
           break;
-        case 'expense':
-          await financeApi.createExpense({ ...values, spenderId: currentUser.id });
+        }
+        case 'expense': {
+          const created = await financeApi.createExpense({ ...values, spenderId: currentUser.id });
+          setExpenses(prev => [...prev, created]);
           break;
-        case 'contract':
-          await contractApi.create(values);
+        }
+        case 'contract': {
+          const created = await contractApi.create(values);
+          setContracts(prev => [...prev, created]);
           break;
-        case 'leave':
-          await hrApi.createLeaveRequest({ ...values, staffId: currentUser.id, status: 'Chờ duyệt' });
+        }
+        case 'leave': {
+          const created = await hrApi.createLeaveRequest({ ...values, staffId: currentUser.id, status: 'Chờ duyệt' });
+          setLeaveRequests(prev => [...prev, created]);
           break;
-        case 'timekeeping':
-          await hrApi.createTimekeeping({ ...values, staffId: currentUser.id, status: 'Đúng giờ' });
+        }
+        case 'timekeeping': {
+          const created = await hrApi.createTimekeeping({ ...values, staffId: currentUser.id, status: 'Đúng giờ' });
+          setTimekeeping(prev => [...prev, created]);
           break;
-        case 'staff':
-          await hrApi.createStaff(values);
+        }
+        case 'staff': {
+          const created = await hrApi.createStaff(values);
+          setStaff(prev => [...prev, created]);
           break;
+        }
         default:
           break;
       }
       messageApi.success('Tạo mới thành công');
       setCreateModal({ visible: false, type: '' });
       form.resetFields();
-      fetchData();
     } catch (e) {
       messageApi.error('Tạo mới thất bại');
     }
@@ -297,8 +319,8 @@ export default function App() {
   const handleUpdateLeaveStatus = async (id: string, status: 'Đã duyệt' | 'Từ chối') => {
     try {
       await hrApi.updateLeaveRequest(id, { status });
+      setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
       messageApi.success('Cập nhật trạng thái nghỉ phép thành công');
-      fetchData();
     } catch (e) {
       messageApi.error('Thao tác thất bại');
     }
@@ -307,8 +329,8 @@ export default function App() {
   const handleDeleteStaff = async (id: string) => {
     try {
       await hrApi.deleteStaff(id);
+      setStaff(prev => prev.filter(s => s.id !== id));
       messageApi.success('Xóa nhân viên thành công');
-      fetchData();
     } catch (e) {
       messageApi.error('Xóa nhân viên thất bại');
     }
@@ -317,9 +339,9 @@ export default function App() {
   const handleUpdateStaff = async (values: any) => {
     try {
       await hrApi.updateStaff(detailModal.data.id, values);
+      setStaff(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...values } : s));
       messageApi.success('Cập nhật nhân viên thành công');
       setDetailModal({ visible: false, type: 'staff', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật nhân viên thất bại');
     }
@@ -328,9 +350,9 @@ export default function App() {
   const handleUpdateCustomer = async (values: any) => {
     try {
       await customerApi.update(detailModal.data.id, values);
+      setCustomers(prev => prev.map(c => c.id === detailModal.data.id ? { ...c, ...values } : c));
       messageApi.success('Cập nhật khách hàng thành công');
       setDetailModal({ visible: false, type: 'customer', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật khách hàng thất bại');
     }
@@ -339,8 +361,8 @@ export default function App() {
   const handleDeleteCustomer = async (id: string) => {
     try {
       await customerApi.delete(id);
+      setCustomers(prev => prev.filter(c => c.id !== id));
       messageApi.success('Xóa khách hàng thành công');
-      fetchData();
     } catch (e) {
       messageApi.error('Xóa khách hàng thất bại');
     }
@@ -349,9 +371,9 @@ export default function App() {
   const handleUpdateProfile = async (values: any) => {
     try {
       await serviceProfileApi.update(detailModal.data.id, values);
+      setProfiles(prev => prev.map(p => p.id === detailModal.data.id ? { ...p, ...values } : p));
       messageApi.success('Cập nhật hồ sơ thành công');
       setDetailModal({ visible: false, type: 'profile', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật hồ sơ thất bại');
     }
@@ -360,9 +382,9 @@ export default function App() {
   const handleUpdateLawsuit = async (values: any) => {
     try {
       await lawsuitApi.update(detailModal.data.id, values);
+      setLawsuits(prev => prev.map(l => l.id === detailModal.data.id ? { ...l, ...values } : l));
       messageApi.success('Cập nhật vụ án thành công');
       setDetailModal({ visible: false, type: 'lawsuit', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật vụ án thất bại');
     }
@@ -371,9 +393,9 @@ export default function App() {
   const handleUpdateTask = async (values: any) => {
     try {
       await taskApi.update(detailModal.data.id, values);
+      setTasks(prev => prev.map(t => t.id === detailModal.data.id ? { ...t, ...values } : t));
       messageApi.success('Cập nhật công việc thành công');
       setDetailModal({ visible: false, type: 'task', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật công việc thất bại');
     }
@@ -382,8 +404,8 @@ export default function App() {
   const handleDeleteTask = async (id: string) => {
     try {
       await taskApi.delete(id);
+      setTasks(prev => prev.filter(t => t.id !== id));
       messageApi.success('Xóa công việc thành công');
-      fetchData();
     } catch (e) {
       messageApi.error('Xóa công việc thất bại');
     }
@@ -392,9 +414,9 @@ export default function App() {
   const handleUpdateSchedule = async (values: any) => {
     try {
       await scheduleApi.update(detailModal.data.id, values);
+      setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...values } : s));
       messageApi.success('Cập nhật lịch hẹn thành công');
       setDetailModal({ visible: false, type: 'schedule', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật lịch hẹn thất bại');
     }
@@ -403,8 +425,8 @@ export default function App() {
   const handleDeleteSchedule = async (id: string) => {
     try {
       await scheduleApi.delete(id);
+      setSchedules(prev => prev.filter(s => s.id !== id));
       messageApi.success('Xóa lịch hẹn thành công');
-      fetchData();
     } catch (e) {
       messageApi.error('Xóa lịch hẹn thất bại');
     }
@@ -413,9 +435,9 @@ export default function App() {
   const handleUpdateContract = async (values: any) => {
     try {
       await contractApi.update(detailModal.data.id, values);
+      setContracts(prev => prev.map(c => c.id === detailModal.data.id ? { ...c, ...values } : c));
       messageApi.success('Cập nhật hợp đồng thành công');
       setDetailModal({ visible: false, type: 'contract', data: null });
-      fetchData();
     } catch (e) {
       messageApi.error('Cập nhật hợp đồng thất bại');
     }
@@ -424,8 +446,8 @@ export default function App() {
   const handleDeleteContract = async (id: string) => {
     try {
       await contractApi.delete(id);
+      setContracts(prev => prev.filter(c => c.id !== id));
       messageApi.success('Xóa hợp đồng thành công');
-      fetchData();
     } catch (e) {
       messageApi.error('Xóa hợp đồng thất bại');
     }
@@ -1002,8 +1024,8 @@ export default function App() {
                             onChange={async (newStatus) => {
                               try {
                                 await taskApi.update(record.id, { status: newStatus });
+                                setTasks(prev => prev.map(t => t.id === record.id ? { ...t, status: newStatus } : t));
                                 messageApi.success('Cập nhật trạng thái thành công');
-                                fetchData();
                               } catch (e) {
                                 messageApi.error('Không thể cập nhật trạng thái');
                               }
