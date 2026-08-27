@@ -13,6 +13,15 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
+// Fix: Next.js Pages Router có thể strip /api prefix khi gọi Express
+// Middleware này đảm bảo req.url luôn bắt đầu bằng /api
+app.use((req: Request, _res: Response, next: Function) => {
+  if (!req.url.startsWith('/api')) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 function logAction(staffId: string, staffName: string, action: string, target: string) {
   db.systemLogs.unshift({
     id: `LOG-${Date.now()}`,
