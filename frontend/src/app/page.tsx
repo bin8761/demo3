@@ -138,7 +138,7 @@ export default function App() {
       fetchChatMessages(chatChannel.type, chatChannel.id);
       const interval = setInterval(() => {
         fetchChatMessages(chatChannel.type, chatChannel.id);
-      }, 3000); // Poll chat messages
+      }, 5000); // Poll mỗi 5s để giảm tải serverless
       return () => clearInterval(interval);
     }
   }, [chatChannel]);
@@ -189,7 +189,7 @@ export default function App() {
       setTimekeeping(tkData);
       setLeaveRequests(lvData);
     } catch (error) {
-      messageApi.error('Không thể kết nối đến Backend Server. Hãy chắc chắn backend đang chạy.');
+      messageApi.error('Không thể tải dữ liệu. Vui lòng tải lại trang.');
     }
   };
 

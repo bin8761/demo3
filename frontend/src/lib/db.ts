@@ -6,7 +6,8 @@ import type {
 
 // -------------------------------------------------------
 // Singleton in-memory database
-// Dữ liệu tồn tại trong một serverless function instance.
+// Dùng globalThis để persist data trong cùng một Lambda instance.
+// Data reset khi Vercel spin up instance mới (sau ~15 phút idle).
 // Phù hợp cho demo/prototype.
 // -------------------------------------------------------
 interface DB {
@@ -51,9 +52,8 @@ export const db: DB = globalForDB._lawfirmDB ?? {
   _initialized: false,
 };
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForDB._lawfirmDB = db;
-}
+// Luôn gán vào globalThis (kể cả production) để giữ singleton trong cùng instance
+globalForDB._lawfirmDB = db;
 
 export function logAction(staffId: string, staffName: string, action: string, target: string) {
   db.systemLogs.unshift({
