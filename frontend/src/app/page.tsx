@@ -539,6 +539,22 @@ export default function App() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Đồng bộ form edit mỗi khi mở detailModal
+  useEffect(() => {
+    if (detailModal.visible && detailModal.data) {
+      if (detailModal.type === 'schedule') {
+        editForm.setFieldsValue({
+          ...detailModal.data,
+          dateTime: detailModal.data.dateTime ? dayjs(detailModal.data.dateTime) : null
+        });
+      } else {
+        editForm.setFieldsValue(detailModal.data);
+      }
+    } else {
+      editForm.resetFields();
+    }
+  }, [detailModal, editForm]);
+
   const handleMenuClick = useCallback((e: any) => {
     setCurrentMenu(e.key);
     if (isMobile) setSidebarOpen(false);
@@ -835,8 +851,12 @@ export default function App() {
 
   const handleUpdateSchedule = async (values: any) => {
     try {
-      await scheduleApi.update(detailModal.data.id, values);
-      setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...values } : s));
+      const formattedValues = { ...values };
+      if (formattedValues.dateTime && dayjs.isDayjs(formattedValues.dateTime)) {
+        formattedValues.dateTime = formattedValues.dateTime.format('YYYY-MM-DDTHH:mm:ss');
+      }
+      await scheduleApi.update(detailModal.data.id, formattedValues);
+      setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...formattedValues } : s));
       messageApi.success('Cập nhật lịch hẹn thành công');
       setDetailModal({ visible: false, type: 'schedule', data: null });
     } catch (e) {
@@ -2451,13 +2471,13 @@ export default function App() {
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
-                        <Form.Item name="type" label="Loại lịch">
-                          <Select options={[{ value: 'Họp khách hàng', label: 'Họp khách hàng' }, { value: 'Tòa án', label: 'Tòa án' }, { value: 'Họp nội bộ', label: 'Họp nội bộ' }, { value: 'Khác', label: 'Khác' }]} />
+                        <Form.Item name="type" label="Loại lịch" rules={[{ required: true, message: 'Chọn loại lịch' }]}>
+                          <Select options={[{ value: 'Hẹn khách', label: 'Hẹn khách' }, { value: 'Họp nội bộ', label: 'Họp nội bộ' }, { value: 'Lịch tòa', label: 'Lịch tòa' }]} />
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
-                        <Form.Item name="dateTime" label="Thời gian">
-                          <Input />
+                        <Form.Item name="dateTime" label="Thời gian" rules={[{ required: true, message: 'Chọn thời gian' }]}>
+                          <DatePicker showTime className="w-full" />
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>

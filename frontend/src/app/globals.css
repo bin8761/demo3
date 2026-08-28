@@ -209,3 +209,33 @@
     padding: 10px 8px !important;
   }
 }
+
+/* Responsive Calendar for Mobile */
+@media (max-width: 576px) {
+  .schedule-cal .ant-picker-content {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  .schedule-cal .ant-picker-cell-inner {
+    padding: 0 !important;
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    margin: 0 auto !important;
+    font-size: 11px !important;
+  }
+  .schedule-cal .ant-picker-calendar-header {
+    padding: 4px 0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    justify-content: space-between !important;
+  }
+  .schedule-cal .ant-picker-calendar-header > div {
+    margin: 0 !important;
+  }
+  .schedule-cal .ant-picker-cell {
+    padding: 2px 0 !important;
+  }
+}
+
