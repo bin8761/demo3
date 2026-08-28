@@ -864,6 +864,10 @@ export default function App() {
         dateTime = dayjs(scheduleDate).format('YYYY-MM-DD') + 'T00:00:00';
       }
       const payload = { ...rest, dateTime };
+      
+      // Hiển thị thông báo log giá trị gửi đi
+      messageApi.info(`Đang cập nhật - ID: ${detailModal.data.id}, Ngày giờ mới: ${dateTime}`);
+      
       await scheduleApi.update(detailModal.data.id, payload);
       setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...payload } : s));
       messageApi.success('Cập nhật lịch hẹn thành công');
