@@ -486,6 +486,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'table' | 'kanban'>('kanban');
   const [scheduleViewMode, setScheduleViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [selectedDayModal, setSelectedDayModal] = useState<{ visible: boolean; date: string; items: any[] }>({ visible: false, date: '', items: [] });
   const [currentUser, setCurrentUser] = useState({
     id: 'NV-001',
     name: 'Nguyễn Văn Trưởng',
@@ -1518,7 +1519,21 @@ export default function App() {
                     <div>
                       <Calendar
                         fullscreen={false}
+                        mode="month"
                         className="schedule-cal"
+                        onPanelChange={(_, mode) => {
+                          // Không cho chuyển sang Year view
+                          if (mode !== 'month') return;
+                        }}
+                        onSelect={(date) => {
+                          const dateStr = date.format('YYYY-MM-DD');
+                          const daySchedules = schedules.filter((s: any) =>
+                            dayjs(s.dateTime).format('YYYY-MM-DD') === dateStr
+                          );
+                          if (daySchedules.length > 0) {
+                            setSelectedDayModal({ visible: true, date: dateStr, items: daySchedules });
+                          }
+                        }}
                         cellRender={(current, info) => {
                           if (info.type !== 'date') return info.originNode;
                           const dateStr = current.format('YYYY-MM-DD');
@@ -1529,27 +1544,53 @@ export default function App() {
                           return (
                             <div className="flex flex-wrap gap-0.5 justify-center mt-0.5">
                               {daySchedules.slice(0, 4).map((s: any) => (
-                                <Tooltip
+                                <span
                                   key={s.id}
-                                  title={`${dayjs(s.dateTime).format('HH:mm')} — ${s.title} (${s.type})`}
-                                >
-                                  <span
-                                    onClick={(e) => { e.stopPropagation(); handleOpenDetail('schedule', s.id); }}
-                                    className="cursor-pointer rounded-full shrink-0"
-                                    style={{
-                                      width: '6px',
-                                      height: '6px',
-                                      display: 'inline-block',
-                                      background: s.type === 'Hẹn khách' ? '#2563eb' : s.type === 'Lịch tòa' ? '#dc2626' : '#059669'
-                                    }}
-                                  />
-                                </Tooltip>
+                                  className="rounded-full shrink-0"
+                                  style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    display: 'inline-block',
+                                    background: s.type === 'Hẹn khách' ? '#2563eb' : s.type === 'Lịch tòa' ? '#dc2626' : '#059669'
+                                  }}
+                                />
                               ))}
                             </div>
                           );
                         }}
                         style={{ borderRadius: '8px' }}
                       />
+
+                      {/* Modal khi click vào ngày có lịch */}
+                      <Modal
+                        open={selectedDayModal.visible}
+                        title={`Lịch ngày ${dayjs(selectedDayModal.date).format('DD/MM/YYYY')}`}
+                        onCancel={() => setSelectedDayModal({ visible: false, date: '', items: [] })}
+                        footer={null}
+                        width={480}
+                      >
+                        <div className="space-y-3 py-2">
+                          {selectedDayModal.items.map((s: any) => (
+                            <div
+                              key={s.id}
+                              onClick={() => { setSelectedDayModal({ visible: false, date: '', items: [] }); handleOpenDetail('schedule', s.id); }}
+                              className="flex items-start gap-3 p-3 rounded-lg border border-[var(--glass-border)] hover:border-blue-400/50 cursor-pointer transition-all"
+                            >
+                              <div
+                                className="w-10 h-10 rounded-lg flex flex-col items-center justify-center shrink-0 text-white font-bold"
+                                style={{ background: s.type === 'Hẹn khách' ? '#2563eb' : s.type === 'Lịch tòa' ? '#dc2626' : '#059669', fontSize: '11px' }}
+                              >
+                                {dayjs(s.dateTime).format('HH:mm')}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{s.title}</div>
+                                <div className="text-xs text-gray-400 mt-0.5">{s.type} {s.notes ? `· ${s.notes}` : ''}</div>
+                              </div>
+                              <Tag color={s.type === 'Hẹn khách' ? 'blue' : s.type === 'Lịch tòa' ? 'red' : 'green'} className="shrink-0">{s.type}</Tag>
+                            </div>
+                          ))}
+                        </div>
+                      </Modal>
 
                       {/* Danh sách lịch trong tháng này */}
                       <div className="mt-4">
