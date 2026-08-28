@@ -1516,8 +1516,22 @@ export default function App() {
                 >
                   {scheduleViewMode === 'calendar' ? (
                     <div>
+                      {/* Style ép chiều cao ô calendar cố định */}
+                      <style>{`
+                        .schedule-cal .ant-picker-calendar-date-content {
+                          height: 44px !important;
+                          overflow: hidden !important;
+                        }
+                        .schedule-cal .ant-picker-cell-inner {
+                          min-height: 24px !important;
+                        }
+                        .schedule-cal .ant-picker-calendar-date-value {
+                          font-size: 12px;
+                        }
+                      `}</style>
                       <Calendar
                         fullscreen={false}
+                        className="schedule-cal"
                         cellRender={(current, info) => {
                           if (info.type !== 'date') return info.originNode;
                           const dateStr = current.format('YYYY-MM-DD');
@@ -1527,13 +1541,15 @@ export default function App() {
                           });
                           if (daySchedules.length === 0) return null;
                           return (
-                            <ul className="m-0 p-0 list-none">
+                            <ul className="m-0 p-0 list-none" style={{ overflow: 'hidden', maxHeight: '44px' }}>
                               {daySchedules.slice(0, 2).map((s: any) => (
                                 <Tooltip key={s.id} title={`${dayjs(s.dateTime).format('HH:mm')} - ${s.title}`}>
                                   <li
                                     onClick={(e) => { e.stopPropagation(); handleOpenDetail('schedule', s.id); }}
-                                    className="truncate text-[10px] rounded px-1 mb-0.5 cursor-pointer"
+                                    className="truncate rounded px-1 mb-0.5 cursor-pointer"
                                     style={{
+                                      fontSize: '9px',
+                                      lineHeight: '16px',
                                       background: s.type === 'Hẹn khách' ? 'rgba(37,99,235,0.15)' : s.type === 'Lịch tòa' ? 'rgba(220,38,38,0.15)' : 'rgba(16,185,129,0.15)',
                                       color: s.type === 'Hẹn khách' ? '#2563eb' : s.type === 'Lịch tòa' ? '#dc2626' : '#059669'
                                     }}
@@ -1543,7 +1559,7 @@ export default function App() {
                                 </Tooltip>
                               ))}
                               {daySchedules.length > 2 && (
-                                <li className="text-[10px] text-gray-400">+{daySchedules.length - 2} khác</li>
+                                <li style={{ fontSize: '9px', color: '#9ca3af' }}>+{daySchedules.length - 2} khác</li>
                               )}
                             </ul>
                           );
