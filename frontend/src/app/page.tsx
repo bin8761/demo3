@@ -622,7 +622,7 @@ export default function App() {
                 <div className="space-y-6">
                   {/* Chỉ số hàng đầu */}
                   <Row gutter={[16, 16]}>
-                    <Col xs={24} sm={12} lg={6}>
+                    <Col xs={12} sm={12} lg={6}>
                       <Card className="glass-panel text-center hover:scale-102 transition-transform duration-200">
                         <Text type="secondary" className="text-xs uppercase font-bold tracking-wider">Khách hàng</Text>
                         <Title level={2} style={{ margin: '8px 0' }} className="text-blue-500">
@@ -631,7 +631,7 @@ export default function App() {
                         <Text type="secondary">Hoạt động trong hệ thống</Text>
                       </Card>
                     </Col>
-                    <Col xs={24} sm={12} lg={6}>
+                    <Col xs={12} sm={12} lg={6}>
                       <Card className="glass-panel text-center hover:scale-102 transition-transform duration-200">
                         <Text type="secondary" className="text-xs uppercase font-bold tracking-wider">Hồ sơ dịch vụ</Text>
                         <Title level={2} style={{ margin: '8px 0' }} className="text-orange-500">
@@ -640,7 +640,7 @@ export default function App() {
                         <Text type="secondary">Đang xử lý tại phòng DV</Text>
                       </Card>
                     </Col>
-                    <Col xs={24} sm={12} lg={6}>
+                    <Col xs={12} sm={12} lg={6}>
                       <Card className="glass-panel text-center hover:scale-102 transition-transform duration-200">
                         <Text type="secondary" className="text-xs uppercase font-bold tracking-wider">Vụ án hình sự / dân sự</Text>
                         <Title level={2} style={{ margin: '8px 0' }} className="text-red-500">
@@ -649,7 +649,7 @@ export default function App() {
                         <Text type="secondary">Đang chuẩn bị xét xử</Text>
                       </Card>
                     </Col>
-                    <Col xs={24} sm={12} lg={6}>
+                    <Col xs={12} sm={12} lg={6}>
                       <Card className="glass-panel text-center hover:scale-102 transition-transform duration-200">
                         <Text type="secondary" className="text-xs uppercase font-bold tracking-wider">Tổng công nợ</Text>
                         <Title level={2} style={{ margin: '8px 0' }} className="text-green-500">
