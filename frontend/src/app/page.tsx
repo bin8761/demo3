@@ -70,7 +70,7 @@ const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
 // Custom Table component to handle responsive layout on mobile
-function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination, ...rest }: any) {
+function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination, ...rest }: React.ComponentProps<typeof AntdTable>) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
