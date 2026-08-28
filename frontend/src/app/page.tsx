@@ -67,6 +67,7 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { useSortable, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import { snapCenterToCursor, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import {
   dashboardApi,
   customerApi,
@@ -439,6 +440,7 @@ function TaskKanban({ tasks, staff, onOpenDetail, onUpdateStatus }: TaskKanbanPr
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      modifiers={[snapCenterToCursor, restrictToWindowEdges]}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
