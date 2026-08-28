@@ -2026,6 +2026,7 @@ export default function App() {
         <Modal
           title={`Chỉnh sửa ${detailModal.type === 'customer' ? 'Khách hàng' : detailModal.type === 'profile' ? 'Hồ sơ' : detailModal.type === 'lawsuit' ? 'Vụ án' : detailModal.type === 'staff' ? 'Nhân viên' : detailModal.type === 'task' ? 'Công việc' : detailModal.type === 'schedule' ? 'Lịch hẹn' : detailModal.type === 'contract' ? 'Hợp đồng' : 'Phòng ban'}`}
           open={detailModal.visible}
+          destroyOnClose
           onCancel={() => { setDetailModal({ visible: false, type: 'customer', data: null }); editForm.resetFields(); }}
           footer={[
             <Button key="cancel" onClick={() => { setDetailModal({ visible: false, type: 'customer', data: null }); editForm.resetFields(); }}>Đóng</Button>,
@@ -2451,18 +2452,18 @@ export default function App() {
                     layout="vertical"
                     onFinish={handleUpdateSchedule}
                     initialValues={{
-                      title: detailModal.data.title,
-                      type: detailModal.data.type,
-                      dateTime: detailModal.data.dateTime,
-                      staffIds: detailModal.data.staffIds,
-                      customerId: detailModal.data.customerId,
-                      notes: detailModal.data.notes
+                      title: detailModal.data?.title,
+                      type: detailModal.data?.type,
+                      dateTime: detailModal.data?.dateTime,
+                      staffIds: detailModal.data?.staffIds,
+                      customerId: detailModal.data?.customerId,
+                      notes: detailModal.data?.notes
                     }}
                   >
                     <Row gutter={16}>
                       <Col xs={24} sm={12}>
                         <Form.Item label="Mã lịch hẹn">
-                          <Input value={detailModal.data.id} disabled />
+                          <Input value={detailModal.data?.id} disabled />
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
