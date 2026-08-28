@@ -3085,39 +3085,102 @@ export default function App() {
 
             {createModal.type === 'document' && (
               <>
-                {/* Vùng kéo thả / chọn file */}
+                {/* Vùng chọn file responsive */}
                 <Form.Item
                   name="_fileUpload"
-                  label="Chọn file từ máy tính"
+                  label="Chọn file tài liệu"
                   rules={[{ required: !selectedFile, message: 'Vui lòng chọn một file' }]}
                 >
-                  <Upload.Dragger
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                    maxCount={1}
-                    beforeUpload={(file) => {
-                      setSelectedFile(file);
-                      // Tự động điền thông tin vào form
-                      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
-                      const validTypes = ['pdf','doc','docx','xls','xlsx','png','jpg'];
-                      const fileType = validTypes.includes(ext) ? ext : 'pdf';
-                      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-                      form.setFieldsValue({
-                        name: file.name,
-                        fileType,
-                        fileSize: `${sizeMB} MB`,
-                        fileUrl: `/uploads/${file.name}`,
-                      });
-                      return false; // ngăn upload thực (demo)
-                    }}
-                    onRemove={() => {
-                      setSelectedFile(null);
-                      form.setFieldsValue({ name: '', fileSize: '', fileUrl: '' });
-                    }}
-                  >
-                    <p style={{ fontSize: 32, margin: '8px 0' }}>📂</p>
-                    <p style={{ fontWeight: 500 }}>Kéo thả file vào đây</p>
-                    <p style={{ opacity: 0.5, fontSize: 12 }}>hoặc nhấn để chọn file từ máy tính (PDF, DOCX, XLSX, PNG...)</p>
-                  </Upload.Dragger>
+                  {isMobile ? (
+                    <div className="space-y-2">
+                      <Upload
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                        maxCount={1}
+                        showUploadList={false}
+                        beforeUpload={(file) => {
+                          setSelectedFile(file);
+                          const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+                          const validTypes = ['pdf','doc','docx','xls','xlsx','png','jpg'];
+                          const fileType = validTypes.includes(ext) ? ext : 'pdf';
+                          const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                          form.setFieldsValue({
+                            name: file.name,
+                            fileType,
+                            fileSize: `${sizeMB} MB`,
+                            fileUrl: `/uploads/${file.name}`,
+                          });
+                          return false; // ngăn upload thực (demo)
+                        }}
+                      >
+                        <Button 
+                          type="dashed" 
+                          icon={<span style={{ marginRight: 6 }}>📸</span>} 
+                          block 
+                          size="large"
+                          style={{ height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <span style={{ fontWeight: 500 }}>Chụp ảnh tài liệu / Chọn file</span>
+                          <span style={{ fontSize: 10, opacity: 0.5 }}>Hỗ trợ chụp trực tiếp bằng Camera hoặc chọn tệp</span>
+                        </Button>
+                      </Upload>
+                      
+                      {selectedFile && (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          padding: '8px 12px', 
+                          background: 'rgba(255,255,255,0.06)', 
+                          border: '1px solid rgba(255,255,255,0.1)', 
+                          borderRadius: 8,
+                          marginTop: 8
+                        }}>
+                          <span style={{ fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                            📎 {selectedFile.name}
+                          </span>
+                          <Button 
+                            type="text" 
+                            danger 
+                            size="small" 
+                            onClick={() => {
+                              setSelectedFile(null);
+                              form.setFieldsValue({ name: '', fileSize: '', fileUrl: '' });
+                            }}
+                          >
+                            Xóa
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Upload.Dragger
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                      maxCount={1}
+                      beforeUpload={(file) => {
+                        setSelectedFile(file);
+                        // Tự động điền thông tin vào form
+                        const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+                        const validTypes = ['pdf','doc','docx','xls','xlsx','png','jpg'];
+                        const fileType = validTypes.includes(ext) ? ext : 'pdf';
+                        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                        form.setFieldsValue({
+                          name: file.name,
+                          fileType,
+                          fileSize: `${sizeMB} MB`,
+                          fileUrl: `/uploads/${file.name}`,
+                        });
+                        return false; // ngăn upload thực (demo)
+                      }}
+                      onRemove={() => {
+                        setSelectedFile(null);
+                        form.setFieldsValue({ name: '', fileSize: '', fileUrl: '' });
+                      }}
+                    >
+                      <p style={{ fontSize: 32, margin: '8px 0' }}>📂</p>
+                      <p style={{ fontWeight: 500 }}>Kéo thả file vào đây</p>
+                      <p style={{ opacity: 0.5, fontSize: 12 }}>hoặc nhấn để chọn file từ máy tính (PDF, DOCX, XLSX, PNG...)</p>
+                    </Upload.Dragger>
+                  )}
                 </Form.Item>
 
                 <Form.Item name="name" label="Tên tài liệu" rules={[{ required: true, message: 'Vui lòng chọn file hoặc nhập tên' }]}>
