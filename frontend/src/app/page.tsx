@@ -542,14 +542,7 @@ export default function App() {
   // Đồng bộ form edit mỗi khi mở detailModal
   useEffect(() => {
     if (detailModal.visible && detailModal.data) {
-      if (detailModal.type === 'schedule') {
-        editForm.setFieldsValue({
-          ...detailModal.data,
-          dateTime: detailModal.data.dateTime ? dayjs(detailModal.data.dateTime) : null
-        });
-      } else {
-        editForm.setFieldsValue(detailModal.data);
-      }
+      editForm.setFieldsValue(detailModal.data);
     } else {
       editForm.resetFields();
     }
@@ -851,12 +844,8 @@ export default function App() {
 
   const handleUpdateSchedule = async (values: any) => {
     try {
-      const formattedValues = { ...values };
-      if (formattedValues.dateTime && typeof formattedValues.dateTime.format === 'function') {
-        formattedValues.dateTime = formattedValues.dateTime.format('YYYY-MM-DDTHH:mm:ss');
-      }
-      await scheduleApi.update(detailModal.data.id, formattedValues);
-      setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...formattedValues } : s));
+      await scheduleApi.update(detailModal.data.id, values);
+      setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...values } : s));
       messageApi.success('Cập nhật lịch hẹn thành công');
       setDetailModal({ visible: false, type: 'schedule', data: null });
     } catch (e) {
@@ -2454,7 +2443,7 @@ export default function App() {
                     initialValues={{
                       title: detailModal.data?.title,
                       type: detailModal.data?.type,
-                      dateTime: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime) : null,
+                      dateTime: detailModal.data?.dateTime,
                       staffIds: detailModal.data?.staffIds,
                       customerId: detailModal.data?.customerId,
                       notes: detailModal.data?.notes
@@ -2477,8 +2466,8 @@ export default function App() {
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
-                        <Form.Item name="dateTime" label="Thời gian" rules={[{ required: true, message: 'Chọn thời gian' }]}>
-                          <DatePicker showTime className="w-full" />
+                        <Form.Item name="dateTime" label="Thời gian (VD: 2026-08-28T09:00:00)" rules={[{ required: true, message: 'Nhập thời gian' }]}>
+                          <Input placeholder="2026-08-28T09:00:00" />
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
