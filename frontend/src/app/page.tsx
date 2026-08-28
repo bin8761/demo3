@@ -478,6 +478,14 @@ function TaskKanban({ tasks, staff, onOpenDetail, onUpdateStatus }: TaskKanbanPr
   );
 }
 
+const timeOptions = Array.from({ length: 24 }).flatMap((_, h) => {
+  const hStr = String(h).padStart(2, '0');
+  return [0, 15, 30, 45].map(m => {
+    const mStr = String(m).padStart(2, '0');
+    return { value: `${hStr}:${mStr}`, label: `${hStr}:${mStr}` };
+  });
+});
+
 export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [mounted, setMounted] = useState(false);
@@ -843,8 +851,7 @@ export default function App() {
       let dateTime = rest.dateTime || '';
       if (scheduleDate && scheduleTime) {
         const datePart = dayjs(scheduleDate).format('YYYY-MM-DD');
-        const timePart = dayjs(scheduleTime).format('HH:mm:ss');
-        dateTime = `${datePart}T${timePart}`;
+        dateTime = `${datePart}T${scheduleTime}:00`;
       } else if (scheduleDate) {
         dateTime = dayjs(scheduleDate).format('YYYY-MM-DD') + 'T00:00:00';
       }
@@ -2453,7 +2460,7 @@ export default function App() {
                       title: detailModal.data?.title,
                       type: detailModal.data?.type,
                       scheduleDate: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime) : null,
-                      scheduleTime: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime) : null,
+                      scheduleTime: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime).format('HH:mm') : null,
                       staffIds: detailModal.data?.staffIds,
                       customerId: detailModal.data?.customerId,
                       notes: detailModal.data?.notes
@@ -2482,7 +2489,7 @@ export default function App() {
                       </Col>
                       <Col xs={24} sm={12}>
                         <Form.Item name="scheduleTime" label="Giờ" rules={[{ required: true, message: 'Chọn giờ' }]}>
-                          <TimePicker className="w-full" format="HH:mm" minuteStep={15} />
+                          <Select showSearch options={timeOptions} className="w-full" placeholder="Chọn giờ" />
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
