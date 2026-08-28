@@ -80,6 +80,7 @@ import {
   scheduleApi,
   chatApi,
   documentApi,
+  folderApi,
   financeApi,
   contractApi,
   hrApi,
@@ -511,6 +512,9 @@ export default function App() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
+  const [docSearchQuery, setDocSearchQuery] = useState('');
   const [revenues, setRevenues] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
@@ -572,7 +576,7 @@ export default function App() {
   const fetchData = async () => {
     try {
       const [
-        sData, cData, pData, lData, tData, schData, docData, revData, expData, debtData, contrData, stData, deptData, logData, tkData, lvData
+        sData, cData, pData, lData, tData, schData, docData, folderData, revData, expData, debtData, contrData, stData, deptData, logData, tkData, lvData
       ] = await Promise.all([
         dashboardApi.getStats(),
         customerApi.getAll(),
@@ -581,6 +585,7 @@ export default function App() {
         taskApi.getAll(),
         scheduleApi.getAll(),
         documentApi.getAll(),
+        folderApi.getAll(),
         financeApi.getRevenues(),
         financeApi.getExpenses(),
         financeApi.getDebts(),
@@ -599,6 +604,7 @@ export default function App() {
       setTasks(tData);
       setSchedules(schData);
       setDocuments(docData);
+      setFolders(folderData);
       setRevenues(revData);
       setExpenses(expData);
       setDebts(debtData);
@@ -719,6 +725,22 @@ export default function App() {
         case 'timekeeping': {
           const created = await hrApi.createTimekeeping({ ...values, staffId: currentUser.id, status: 'Đúng giờ' });
           setTimekeeping(prev => [...prev, created]);
+          break;
+        }
+        case 'folder': {
+          const created = await folderApi.create({
+            ...values,
+            parentId: values.parentId || undefined,
+          });
+          setFolders(prev => [...prev, created]);
+          break;
+        }
+        case 'document': {
+          const created = await documentApi.create({
+            ...values,
+            folderId: values.folderId || undefined,
+          });
+          setDocuments(prev => [...prev, created]);
           break;
         }
         case 'staff': {
@@ -1771,47 +1793,181 @@ export default function App() {
               {/* ---------------------------------------------------- */}
               {/* TAB 10: DOCUMENTS */}
               {/* ---------------------------------------------------- */}
-              {currentMenu === 'documents' && (
-                <Card
-                  title="Kho tài liệu / Văn bản hồ sơ"
-                  extra={
-                    <Button type="primary" icon={<PaperClipOutlined />} onClick={() => setCreateModal({ visible: true, type: 'document' })}>
-                      Tải tài liệu lên
-                    </Button>
-                  }
-                  className="glass-panel"
-                >
-                  <Table
-                    dataSource={documents}
-                    rowKey="id"
-                    columns={[
-                      { title: 'Tên tài liệu', dataIndex: 'name', key: 'name' },
-                      { title: 'Định dạng', dataIndex: 'fileType', key: 'fileType', render: (t) => <Tag color="blue">{t.toUpperCase()}</Tag> },
-                      { title: 'Kích thước', dataIndex: 'fileSize', key: 'fileSize' },
-                      { title: 'Người tải', dataIndex: 'uploadedBy', key: 'uploadedBy', render: (id) => staff.find(s => s.id === id)?.name || id },
-                      { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt' },
-                      {
-                        title: 'Liên kết',
-                        key: 'link',
-                        render: (_, record) => {
-                          if (record.profileId) return <Tag color="orange">Hồ sơ: {record.profileId}</Tag>;
-                          if (record.lawsuitId) return <Tag color="purple">Vụ án: {record.lawsuitId}</Tag>;
-                          return <Tag>Khách hàng</Tag>;
-                        }
-                      },
-                      {
-                        title: 'Thao tác',
-                        key: 'action',
-                        render: (_, record) => (
-                          <Button type="link" href="#" onClick={(e) => { e.preventDefault(); messageApi.success(`Tải xuống: ${record.name}`); }}>
-                            Tải xuống
-                          </Button>
-                        )
-                      }
-                    ]}
-                  />
-                </Card>
-              )}
+              {currentMenu === 'documents' && (() => {
+                // Breadcrumb path
+                const getBreadcrumb = (folderId: string | undefined): any[] => {
+                  if (!folderId) return [];
+                  const folder = folders.find(f => f.id === folderId);
+                  if (!folder) return [];
+                  return [...getBreadcrumb(folder.parentId), folder];
+                };
+                const breadcrumb = getBreadcrumb(currentFolderId);
+
+                // Filter items trong folder hiện tại + search
+                const subFolders = folders.filter(f =>
+                  f.parentId === currentFolderId &&
+                  (docSearchQuery === '' || f.name.toLowerCase().includes(docSearchQuery.toLowerCase()))
+                );
+                const filteredDocs = docSearchQuery
+                  ? documents.filter(d => d.name.toLowerCase().includes(docSearchQuery.toLowerCase()))
+                  : documents.filter(d => d.folderId === currentFolderId);
+
+                const fileTypeIcon = (t: string) => {
+                  const m: Record<string, {color: string; label: string}> = {
+                    pdf: { color: '#ff4d4f', label: 'PDF' },
+                    docx: { color: '#1677ff', label: 'DOCX' },
+                    doc: { color: '#1677ff', label: 'DOC' },
+                    xlsx: { color: '#52c41a', label: 'XLSX' },
+                    xls: { color: '#52c41a', label: 'XLS' },
+                    png: { color: '#fa8c16', label: 'PNG' },
+                    jpg: { color: '#fa8c16', label: 'JPG' },
+                  };
+                  return m[t] || { color: '#999', label: t?.toUpperCase() };
+                };
+
+                return (
+                  <div className="space-y-4">
+                    {/* Thanh công cụ */}
+                    <Card className="glass-panel" styles={{ body: { padding: '12px 16px' } }}>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Input
+                          prefix={<span style={{ opacity: 0.5 }}>🔍</span>}
+                          placeholder="Tìm kiếm tài liệu, thư mục..."
+                          value={docSearchQuery}
+                          onChange={e => setDocSearchQuery(e.target.value)}
+                          allowClear
+                          style={{ flex: 1, minWidth: 200 }}
+                        />
+                        <Button
+                          icon={<span>📁</span>}
+                          onClick={() => setCreateModal({ visible: true, type: 'folder' })}
+                        >
+                          Tạo thư mục
+                        </Button>
+                        <Button
+                          type="primary"
+                          icon={<PaperClipOutlined />}
+                          onClick={() => setCreateModal({ visible: true, type: 'document' })}
+                        >
+                          Tải lên
+                        </Button>
+                      </div>
+                    </Card>
+
+                    {/* Breadcrumb */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingLeft: 4 }}>
+                      <span
+                        style={{ cursor: 'pointer', color: '#1677ff', fontWeight: 500 }}
+                        onClick={() => setCurrentFolderId(undefined)}
+                      >
+                        🏠 Tài liệu
+                      </span>
+                      {breadcrumb.map((f: any) => (
+                        <span key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ opacity: 0.4 }}>›</span>
+                          <span
+                            style={{ cursor: 'pointer', color: '#1677ff', fontWeight: 500 }}
+                            onClick={() => setCurrentFolderId(f.id)}
+                          >
+                            {f.name}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Grid thư mục */}
+                    {subFolders.length > 0 && (
+                      <Card className="glass-panel" title="Thư mục" styles={{ body: { padding: '12px 16px' } }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+                          {subFolders.map((f: any) => (
+                            <div
+                              key={f.id}
+                              style={{
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                                borderRadius: 12,
+                                padding: '16px 12px',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.2s',
+                                position: 'relative',
+                              }}
+                              className="hover:scale-[1.03] hover:shadow-lg"
+                              onDoubleClick={() => setCurrentFolderId(f.id)}
+                              onClick={() => setCurrentFolderId(f.id)}
+                            >
+                              <div style={{ fontSize: 40, marginBottom: 6 }}>📁</div>
+                              <div style={{ fontWeight: 500, fontSize: 13, wordBreak: 'break-word' }}>{f.name}</div>
+                              <div style={{ position: 'absolute', top: 6, right: 6 }}>
+                                <Button
+                                  type="text" size="small"
+                                  danger
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await folderApi.delete(f.id);
+                                    setFolders(prev => prev.filter(x => x.id !== f.id));
+                                    messageApi.success('Đã xóa thư mục');
+                                  }}
+                                >
+                                  ✕
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Bảng tài liệu */}
+                    <Card className="glass-panel" title={`Tài liệu${docSearchQuery ? ` — Kết quả tìm kiếm "${docSearchQuery}"` : ''}`}>
+                      <Table
+                        dataSource={filteredDocs}
+                        rowKey="id"
+                        locale={{ emptyText: 'Chưa có tài liệu nào trong thư mục này' }}
+                        columns={[
+                          {
+                            title: 'Tên tài liệu', dataIndex: 'name', key: 'name',
+                            render: (name: string, record: any) => {
+                              const { color, label } = fileTypeIcon(record.fileType);
+                              return (
+                                <Space>
+                                  <Tag color={color} style={{ minWidth: 44, textAlign: 'center' }}>{label}</Tag>
+                                  <span>{name}</span>
+                                </Space>
+                              );
+                            }
+                          },
+                          { title: 'Kích thước', dataIndex: 'fileSize', key: 'fileSize', width: 100 },
+                          { title: 'Người tải', dataIndex: 'uploadedBy', key: 'uploadedBy', width: 140, render: (id: string) => staff.find(s => s.id === id)?.name || id },
+                          { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt', width: 110 },
+                          {
+                            title: 'Vị trí',
+                            key: 'folder',
+                            width: 130,
+                            render: (_: any, record: any) => {
+                              const folder = folders.find(f => f.id === record.folderId);
+                              return folder ? <Tag color="blue">📁 {folder.name}</Tag> : <Tag>📄 Gốc</Tag>;
+                            }
+                          },
+                          {
+                            title: 'Thao tác', key: 'action', width: 120,
+                            render: (_: any, record: any) => (
+                              <Space>
+                                <Button type="link" size="small" onClick={() => messageApi.success(`Tải xuống: ${record.name}`)}>⬇ Tải</Button>
+                                <Button type="link" size="small" danger onClick={async () => {
+                                  await documentApi.delete(record.id);
+                                  setDocuments(prev => prev.filter(d => d.id !== record.id));
+                                  messageApi.success('Đã xóa tài liệu');
+                                }}>Xóa</Button>
+                              </Space>
+                            )
+                          }
+                        ]}
+                      />
+                    </Card>
+                  </div>
+                );
+              })()}
 
               {/* ---------------------------------------------------- */}
               {/* TAB 11: FINANCE */}
@@ -2903,10 +3059,41 @@ export default function App() {
               </>
             )}
 
+            {createModal.type === 'folder' && (
+              <>
+                <Form.Item name="name" label="Tên thư mục" rules={[{ required: true, message: 'Nhập tên thư mục' }]}>
+                  <Input placeholder="VD: Hồ sơ khách hàng 2026" />
+                </Form.Item>
+                <Form.Item name="parentId" label="Thư mục cha" initialValue={currentFolderId}>
+                  <Select
+                    allowClear
+                    placeholder="Không chọn = lưu vào gốc"
+                    options={[
+                      { value: '', label: '🏠 Tầng gốc (Root)' },
+                      ...folders.map(f => ({ value: f.id, label: `📁 ${f.name}` }))
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item name="createdBy" label="Người tạo" initialValue="NV-001">
+                  <Select options={staff.map(s => ({ value: s.id, label: s.name }))} />
+                </Form.Item>
+              </>
+            )}
+
             {createModal.type === 'document' && (
               <>
                 <Form.Item name="name" label="Tên tài liệu" rules={[{ required: true }]}>
                   <Input placeholder="Giấy chứng nhận quyền sử dụng đất.pdf" />
+                </Form.Item>
+                <Form.Item name="folderId" label="Lưu vào thư mục" initialValue={currentFolderId}>
+                  <Select
+                    allowClear
+                    placeholder="Không chọn = lưu vào gốc"
+                    options={[
+                      { value: '', label: '🏠 Tầng gốc (Root)' },
+                      ...folders.map(f => ({ value: f.id, label: `📁 ${f.name}` }))
+                    ]}
+                  />
                 </Form.Item>
                 <Form.Item name="fileType" label="Định dạng file" initialValue="pdf">
                   <Select options={[{ value: 'pdf', label: 'PDF' }, { value: 'docx', label: 'DOCX' }, { value: 'xlsx', label: 'XLSX' }, { value: 'png', label: 'PNG' }]} />

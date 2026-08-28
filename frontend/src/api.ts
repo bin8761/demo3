@@ -62,6 +62,14 @@ export const chatApi = {
 export const documentApi = {
   getAll: () => api.get('/documents').then(res => res.data),
   create: (data: any) => api.post('/documents', data).then(res => res.data),
+  delete: (id: string) => api.delete(`/documents/${id}`).then(res => res.data),
+};
+
+export const folderApi = {
+  getAll: () => api.get('/folders').then(res => res.data),
+  create: (data: any) => api.post('/folders', data).then(res => res.data),
+  delete: (id: string) => api.delete(`/folders/${id}`).then(res => res.data),
+  rename: (id: string, data: any) => api.patch(`/folders/${id}`, data).then(res => res.data),
 };
 
 export const financeApi = {

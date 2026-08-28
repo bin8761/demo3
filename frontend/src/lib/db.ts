@@ -1,6 +1,6 @@
 import type {
   Customer, Department, Staff, ServiceProfile, Lawsuit,
-  Task, Schedule, ChatMessage, Document, Revenue,
+  Task, Schedule, ChatMessage, Document, Folder, Revenue,
   Expense, Debt, Contract, Timekeeping, LeaveRequest, SystemLog
 } from './types';
 
@@ -19,6 +19,7 @@ interface DB {
   tasks: Task[];
   schedules: Schedule[];
   chatMessages: ChatMessage[];
+  folders: Folder[];
   documents: Document[];
   revenues: Revenue[];
   expenses: Expense[];
@@ -41,6 +42,7 @@ export const db: DB = globalForDB._lawfirmDB ?? {
   tasks: [],
   schedules: [],
   chatMessages: [],
+  folders: [],
   documents: [],
   revenues: [],
   expenses: [],
@@ -127,10 +129,18 @@ export function ensureInitialized() {
     { id: 'CHAT-002', channelType: 'profile', channelId: 'HS-2026-001', senderId: 'NV-002', senderName: 'Lê Thị Dịch', content: 'Tốt lắm Sự. Lưu ý đối chiếu kỹ thông tin trên CMT/CCCD cũ và mới nhé.', createdAt: `${todayStr}T08:45:00` },
   ];
 
+  // 8.5. Thư mục tài liệu
+  db.folders = [
+    { id: 'FOL-001', name: 'Hồ sơ khách hàng', parentId: undefined, createdBy: 'NV-001', createdAt: todayStr, color: '#1677ff' },
+    { id: 'FOL-002', name: 'Nguyễn Văn A', parentId: 'FOL-001', createdBy: 'NV-005', createdAt: todayStr, color: '#52c41a' },
+    { id: 'FOL-003', name: 'Vụ án & Tố tụng', parentId: undefined, createdBy: 'NV-003', createdAt: todayStr, color: '#fa8c16' },
+    { id: 'FOL-004', name: 'Hợp đồng', parentId: undefined, createdBy: 'NV-001', createdAt: todayStr, color: '#722ed1' },
+  ];
+
   // 9. Tài liệu
   db.documents = [
-    { id: 'DOC-001', name: 'Giấy chứng nhận quyền sử dụng đất cũ - Nguyễn Văn A.pdf', fileType: 'pdf', fileSize: '2.5 MB', fileUrl: '/uploads/sodo_nva_old.pdf', customerId: 'KH-001', profileId: 'HS-2026-001', uploadedBy: 'NV-005', createdAt: todayStr },
-    { id: 'DOC-002', name: 'Hợp đồng mua bán thương mại tranh chấp - Trần Văn B.docx', fileType: 'docx', fileSize: '1.2 MB', fileUrl: '/uploads/hopdong_tvb.docx', customerId: 'KH-002', lawsuitId: 'VA-2026-003', uploadedBy: 'NV-003', createdAt: todayStr },
+    { id: 'DOC-001', name: 'Giấy chứng nhận quyền sử dụng đất cũ - Nguyễn Văn A.pdf', fileType: 'pdf', fileSize: '2.5 MB', fileUrl: '/uploads/sodo_nva_old.pdf', folderId: 'FOL-002', customerId: 'KH-001', profileId: 'HS-2026-001', uploadedBy: 'NV-005', createdAt: todayStr },
+    { id: 'DOC-002', name: 'Hợp đồng mua bán thương mại tranh chấp - Trần Văn B.docx', fileType: 'docx', fileSize: '1.2 MB', fileUrl: '/uploads/hopdong_tvb.docx', folderId: 'FOL-003', customerId: 'KH-002', lawsuitId: 'VA-2026-003', uploadedBy: 'NV-003', createdAt: todayStr },
   ];
 
   // 10. Doanh thu

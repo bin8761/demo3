@@ -96,12 +96,22 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string;  // null/undefined = root
+  createdBy: string;
+  createdAt: string;
+  color?: string;
+}
+
 export interface Document {
   id: string;
   name: string;
   fileType: 'pdf' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'jpg' | 'png';
   fileSize: string;
   fileUrl: string;
+  folderId?: string;  // null/undefined = root
   customerId?: string;
   profileId?: string;
   lawsuitId?: string;
