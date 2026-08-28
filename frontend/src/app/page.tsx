@@ -30,7 +30,8 @@ import {
   Radio,
   Calendar,
   Tooltip,
-  TimePicker
+  TimePicker,
+  Upload
 } from 'antd';
 import type { TableProps as AntdTableProps } from 'antd';
 import {
@@ -515,6 +516,7 @@ export default function App() {
   const [folders, setFolders] = useState<any[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
   const [docSearchQuery, setDocSearchQuery] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [revenues, setRevenues] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
@@ -753,6 +755,7 @@ export default function App() {
       }
       messageApi.success('Tạo mới thành công');
       setCreateModal({ visible: false, type: '' });
+      setSelectedFile(null);
       form.resetFields();
     } catch (e) {
       messageApi.error('Tạo mới thất bại');
@@ -2789,9 +2792,9 @@ export default function App() {
         {/* MODAL: TẠO MỚI ĐỐI TƯỢNG */}
         {/* ---------------------------------------------------- */}
         <Modal
-          title={`Tạo mới ${createModal.type === 'customer' ? 'Khách hàng' : createModal.type === 'profile' ? 'Hồ sơ' : createModal.type === 'lawsuit' ? 'Vụ án' : createModal.type === 'task' ? 'Công việc' : createModal.type === 'schedule' ? 'Lịch hẹn' : createModal.type === 'revenue' ? 'Doanh thu' : createModal.type === 'expense' ? 'Chi phí' : createModal.type === 'contract' ? 'Hợp đồng' : createModal.type === 'leave' ? 'Đơn nghỉ phép' : createModal.type === 'staff' ? 'Nhân viên' : 'Chấm công'}`}
+          title={`Tạo mới ${createModal.type === 'customer' ? 'Khách hàng' : createModal.type === 'profile' ? 'Hồ sơ' : createModal.type === 'lawsuit' ? 'Vụ án' : createModal.type === 'task' ? 'Công việc' : createModal.type === 'schedule' ? 'Lịch hẹn' : createModal.type === 'revenue' ? 'Doanh thu' : createModal.type === 'expense' ? 'Chi phí' : createModal.type === 'contract' ? 'Hợp đồng' : createModal.type === 'leave' ? 'Đơn nghỉ phép' : createModal.type === 'staff' ? 'Nhân viên' : createModal.type === 'folder' ? 'Thư mục' : createModal.type === 'document' ? 'Tài liệu' : 'Chấm công'}`}
           open={createModal.visible}
-          onCancel={() => { setCreateModal({ visible: false, type: '' }); form.resetFields(); }}
+          onCancel={() => { setCreateModal({ visible: false, type: '' }); setSelectedFile(null); form.resetFields(); }}
           onOk={() => form.submit()}
           width={isMobile ? '95%' : 600}
           style={{ top: isMobile ? 16 : undefined }}
@@ -3082,10 +3085,67 @@ export default function App() {
 
             {createModal.type === 'document' && (
               <>
-                <Form.Item name="name" label="Tên tài liệu" rules={[{ required: true }]}>
-                  <Input placeholder="Giấy chứng nhận quyền sử dụng đất.pdf" />
+                {/* Vùng kéo thả / chọn file */}
+                <Form.Item
+                  name="_fileUpload"
+                  label="Chọn file từ máy tính"
+                  rules={[{ required: !selectedFile, message: 'Vui lòng chọn một file' }]}
+                >
+                  <Upload.Dragger
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    maxCount={1}
+                    beforeUpload={(file) => {
+                      setSelectedFile(file);
+                      // Tự động điền thông tin vào form
+                      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+                      const validTypes = ['pdf','doc','docx','xls','xlsx','png','jpg'];
+                      const fileType = validTypes.includes(ext) ? ext : 'pdf';
+                      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                      form.setFieldsValue({
+                        name: file.name,
+                        fileType,
+                        fileSize: `${sizeMB} MB`,
+                        fileUrl: `/uploads/${file.name}`,
+                      });
+                      return false; // ngăn upload thực (demo)
+                    }}
+                    onRemove={() => {
+                      setSelectedFile(null);
+                      form.setFieldsValue({ name: '', fileSize: '', fileUrl: '' });
+                    }}
+                  >
+                    <p style={{ fontSize: 32, margin: '8px 0' }}>📂</p>
+                    <p style={{ fontWeight: 500 }}>Kéo thả file vào đây</p>
+                    <p style={{ opacity: 0.5, fontSize: 12 }}>hoặc nhấn để chọn file từ máy tính (PDF, DOCX, XLSX, PNG...)</p>
+                  </Upload.Dragger>
                 </Form.Item>
-                <Form.Item name="folderId" label="Lưu vào thư mục" initialValue={currentFolderId}>
+
+                <Form.Item name="name" label="Tên tài liệu" rules={[{ required: true, message: 'Vui lòng chọn file hoặc nhập tên' }]}>
+                  <Input placeholder="Tự động điền khi chọn file" />
+                </Form.Item>
+
+                <Row gutter={12}>
+                  <Col span={12}>
+                    <Form.Item name="fileType" label="Định dạng" initialValue="pdf">
+                      <Select options={[
+                        { value: 'pdf', label: 'PDF' },
+                        { value: 'docx', label: 'DOCX' },
+                        { value: 'doc', label: 'DOC' },
+                        { value: 'xlsx', label: 'XLSX' },
+                        { value: 'xls', label: 'XLS' },
+                        { value: 'png', label: 'PNG' },
+                        { value: 'jpg', label: 'JPG' },
+                      ]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="fileSize" label="Dung lượng" initialValue="">
+                      <Input placeholder="Tự động điền" readOnly />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item name="folderId" label="Lưu vào thư mục" initialValue={currentFolderId || ''}>
                   <Select
                     allowClear
                     placeholder="Không chọn = lưu vào gốc"
@@ -3095,12 +3155,7 @@ export default function App() {
                     ]}
                   />
                 </Form.Item>
-                <Form.Item name="fileType" label="Định dạng file" initialValue="pdf">
-                  <Select options={[{ value: 'pdf', label: 'PDF' }, { value: 'docx', label: 'DOCX' }, { value: 'xlsx', label: 'XLSX' }, { value: 'png', label: 'PNG' }]} />
-                </Form.Item>
-                <Form.Item name="fileSize" label="Dung lượng" initialValue="1.5 MB">
-                  <Input />
-                </Form.Item>
+
                 <Form.Item name="customerId" label="Khách hàng liên quan">
                   <Select allowClear options={customers.map(c => ({ value: c.id, label: c.name }))} />
                 </Form.Item>
@@ -3110,10 +3165,10 @@ export default function App() {
                 <Form.Item name="lawsuitId" label="Vụ án liên quan">
                   <Select allowClear options={lawsuits.map(l => ({ value: l.id, label: l.title }))} />
                 </Form.Item>
-                <Form.Item name="uploadedBy" label="Người tải lên" rules={[{ required: true }]}>
+                <Form.Item name="uploadedBy" label="Người tải lên" rules={[{ required: true, message: 'Chọn người tải' }]}>
                   <Select options={staff.map(s => ({ value: s.id, label: s.name }))} />
                 </Form.Item>
-                <Form.Item name="fileUrl" label="Đường dẫn file (Giả lập)" initialValue="/uploads/file.pdf">
+                <Form.Item name="fileUrl" hidden initialValue="/uploads/file.pdf">
                   <Input />
                 </Form.Item>
               </>
