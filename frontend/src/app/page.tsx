@@ -28,6 +28,7 @@ import {
   Typography,
   Switch
 } from 'antd';
+import type { TableProps as AntdTableProps } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -71,7 +72,7 @@ const { Title, Text } = Typography;
 
 interface CustomTableProps<RecordType> {
   dataSource?: RecordType[];
-  columns?: any[];
+  columns?: AntdTableProps<RecordType>['columns'];
   rowKey?: any;
   onRow?: (record: RecordType, index?: number) => any;
   pagination?: any;
