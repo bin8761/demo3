@@ -2454,7 +2454,7 @@ export default function App() {
                     initialValues={{
                       title: detailModal.data?.title,
                       type: detailModal.data?.type,
-                      dateTime: detailModal.data?.dateTime,
+                      dateTime: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime) : null,
                       staffIds: detailModal.data?.staffIds,
                       customerId: detailModal.data?.customerId,
                       notes: detailModal.data?.notes
