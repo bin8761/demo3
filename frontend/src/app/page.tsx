@@ -61,6 +61,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent
 } from '@dnd-kit/core';
@@ -298,12 +299,18 @@ interface KanbanColumnProps {
 
 function KanbanColumn({ col, colTasks, staff, onOpenDetail, activeTaskId, isOver }: KanbanColumnProps) {
   const badgeColor = col.color === 'blue' ? '#3b82f6' : col.color === 'orange' ? '#f97316' : col.color === 'purple' ? '#a855f7' : '#22c55e';
+
+  // useDroppable đảm bảo cột rỗng vẫn là vùng thả hợp lệ
+  const { setNodeRef: setDropRef, isOver: isDragOver } = useDroppable({ id: col.key });
+
+  const isHighlighted = isOver || isDragOver;
+
   return (
     <div
       className="flex flex-col rounded-xl border transition-all duration-200"
       style={{
-        background: isOver ? 'rgba(37, 99, 235, 0.08)' : 'rgba(128, 128, 128, 0.03)',
-        borderColor: isOver ? 'var(--primary)' : 'var(--glass-border)',
+        background: isHighlighted ? 'rgba(37, 99, 235, 0.08)' : 'rgba(128, 128, 128, 0.03)',
+        borderColor: isHighlighted ? 'var(--primary)' : 'var(--glass-border)',
         minWidth: '220px',
         flex: '1 1 0'
       }}
@@ -317,8 +324,12 @@ function KanbanColumn({ col, colTasks, staff, onOpenDetail, activeTaskId, isOver
         </Space>
       </div>
 
-      {/* Tasks list */}
-      <div className="flex-1 p-2 space-y-2 overflow-y-auto" style={{ minHeight: '80px' }}>
+      {/* Tasks list — gắn ref droppable vào đây để cột rỗng vẫn nhận thẻ */}
+      <div
+        ref={setDropRef}
+        className="flex-1 p-2 space-y-2 overflow-y-auto"
+        style={{ minHeight: '120px' }}
+      >
         <SortableContext items={colTasks.map((t: any) => t.id)} strategy={rectSortingStrategy}>
           {colTasks.map((task: any) => (
             <TaskCard
@@ -331,7 +342,18 @@ function KanbanColumn({ col, colTasks, staff, onOpenDetail, activeTaskId, isOver
           ))}
         </SortableContext>
         {colTasks.length === 0 && (
-          <div className="text-center text-gray-400 py-10 text-xs">Kéo thả việc vào đây</div>
+          <div
+            className="flex flex-col items-center justify-center h-full py-10 gap-2 rounded-lg border-2 border-dashed transition-all duration-200"
+            style={{
+              borderColor: isHighlighted ? 'var(--primary)' : 'transparent',
+              background: isHighlighted ? 'rgba(37,99,235,0.04)' : 'transparent'
+            }}
+          >
+            <span className="text-2xl">{isHighlighted ? '⬇️' : '➕'}</span>
+            <span className="text-gray-400 text-xs">
+              {isHighlighted ? 'Thả vào đây' : 'Chưa có việc'}
+            </span>
+          </div>
         )}
       </div>
     </div>
