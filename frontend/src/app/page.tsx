@@ -517,6 +517,7 @@ export default function App() {
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
   const [docSearchQuery, setDocSearchQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [currentAttachmentName, setCurrentAttachmentName] = useState<string | null>(null);
   const [revenues, setRevenues] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
@@ -657,7 +658,10 @@ export default function App() {
       else if (type === 'staff') data = await hrApi.getStaffById(id);
       else if (type === 'task') data = await taskApi.getById(id);
       else if (type === 'schedule') data = await scheduleApi.getById(id);
-      else if (type === 'contract') data = await contractApi.getById(id);
+      else if (type === 'contract') {
+        data = await contractApi.getById(id);
+        setCurrentAttachmentName(data?.attachmentName || null);
+      }
       
       setDetailModal({ visible: true, type, data });
     } catch (e) {
@@ -2208,7 +2212,12 @@ export default function App() {
           title={`Chỉnh sửa ${detailModal.type === 'customer' ? 'Khách hàng' : detailModal.type === 'profile' ? 'Hồ sơ' : detailModal.type === 'lawsuit' ? 'Vụ án' : detailModal.type === 'staff' ? 'Nhân viên' : detailModal.type === 'task' ? 'Công việc' : detailModal.type === 'schedule' ? 'Lịch hẹn' : detailModal.type === 'contract' ? 'Hợp đồng' : 'Phòng ban'}`}
           open={detailModal.visible}
           destroyOnClose
-          onCancel={() => { setDetailModal({ visible: false, type: 'customer', data: null }); editForm.resetFields(); }}
+          onCancel={() => { 
+            setDetailModal({ visible: false, type: 'customer', data: null }); 
+            setSelectedFile(null); 
+            setCurrentAttachmentName(null); 
+            editForm.resetFields(); 
+          }}
           footer={[
             <Button key="cancel" onClick={() => { setDetailModal({ visible: false, type: 'customer', data: null }); editForm.resetFields(); }}>Đóng</Button>,
             <Button key="save" type="primary" onClick={() => editForm.submit()}>Lưu thay đổi</Button>
@@ -2710,7 +2719,7 @@ export default function App() {
                     <Row gutter={16}>
                       <Col xs={24} sm={12}>
                         <Form.Item label="Mã hợp đồng">
-                          <Input value={detailModal.data.id} disabled />
+                          <Input value={detailModal.data?.id} disabled />
                         </Form.Item>
                       </Col>
                       <Col xs={24} sm={12}>
@@ -2766,6 +2775,7 @@ export default function App() {
                                     attachmentName: file.name,
                                     attachmentUrl: `/uploads/${file.name}`
                                   });
+                                  setCurrentAttachmentName(file.name);
                                   return false;
                                 }}
                               >
@@ -2779,12 +2789,12 @@ export default function App() {
                                   <span style={{ fontWeight: 500 }}>Thay đổi / Chụp lại hợp đồng</span>
                                 </Button>
                               </Upload>
-                              {(selectedFile || editForm.getFieldValue('attachmentName')) && (
+                              {(selectedFile || currentAttachmentName) && (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}>
                                   <span style={{ fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80%' }}>
-                                    📎 {selectedFile ? selectedFile.name : editForm.getFieldValue('attachmentName')}
+                                    📎 {selectedFile ? selectedFile.name : currentAttachmentName}
                                   </span>
-                                  <Button type="text" danger size="small" onClick={() => { setSelectedFile(null); editForm.setFieldsValue({ attachmentName: '', attachmentUrl: '' }); }}>Xóa</Button>
+                                  <Button type="text" danger size="small" onClick={() => { setSelectedFile(null); editForm.setFieldsValue({ attachmentName: '', attachmentUrl: '' }); setCurrentAttachmentName(null); }}>Xóa</Button>
                                 </div>
                               )}
                             </div>
@@ -2798,21 +2808,23 @@ export default function App() {
                                     attachmentName: file.name,
                                     attachmentUrl: `/uploads/${file.name}`
                                   });
+                                  setCurrentAttachmentName(file.name);
                                   return false;
                                 }}
                                 onRemove={() => {
                                   setSelectedFile(null);
                                   editForm.setFieldsValue({ attachmentName: '', attachmentUrl: '' });
+                                  setCurrentAttachmentName(null);
                                 }}
                               >
                                 <p style={{ fontSize: 24, margin: '4px 0' }}>📄</p>
                                 <p style={{ fontWeight: 500, fontSize: 13 }}>Kéo thả file hợp đồng mới vào đây</p>
                                 <p style={{ opacity: 0.5, fontSize: 11 }}>hoặc click để chọn file thay thế</p>
                               </Upload.Dragger>
-                              {(selectedFile || editForm.getFieldValue('attachmentName')) && !selectedFile && (
+                              {(selectedFile || currentAttachmentName) && !selectedFile && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px' }}>
-                                  <span style={{ fontSize: 13 }}>📄 File hiện tại: <strong>{editForm.getFieldValue('attachmentName')}</strong></span>
-                                  <Button type="link" size="small" onClick={() => messageApi.success(`Tải file: ${editForm.getFieldValue('attachmentName')}`)}>Tải xuống</Button>
+                                  <span style={{ fontSize: 13 }}>📄 File hiện tại: <strong>{currentAttachmentName}</strong></span>
+                                  <Button type="link" size="small" onClick={() => messageApi.success(`Tải file: ${currentAttachmentName}`)}>Tải xuống</Button>
                                 </div>
                               )}
                             </div>
