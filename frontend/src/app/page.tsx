@@ -2064,7 +2064,30 @@ export default function App() {
                     })}
                     columns={[
                       { title: 'Mã HĐ', dataIndex: 'id', key: 'id' },
-                      { title: 'Tên hợp đồng', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { 
+                        title: 'Tên hợp đồng', 
+                        dataIndex: 'title', 
+                        key: 'title', 
+                        render: (text, record) => (
+                          <Space>
+                            <a>{text}</a>
+                            {record.attachmentName && (
+                              <Tooltip title={`Đính kèm: ${record.attachmentName}`}>
+                                <Button 
+                                  type="text" 
+                                  size="small" 
+                                  style={{ padding: 0, height: 'auto' }}
+                                  icon={<span style={{ cursor: 'pointer', fontSize: 13 }}>📎</span>} 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    messageApi.success(`Tải file đính kèm: ${record.attachmentName}`);
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
+                          </Space>
+                        ) 
+                      },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (id) => customers.find(c => c.id === id)?.name || id },
                       { title: 'Giá trị hợp đồng', dataIndex: 'value', key: 'value', render: (v) => `${v.toLocaleString()}đ` },
                       { title: 'Ngày ký', dataIndex: 'signDate', key: 'signDate' },
@@ -2672,14 +2695,16 @@ export default function App() {
                     layout="vertical"
                     onFinish={handleUpdateContract}
                     initialValues={{
-                      title: detailModal.data.title,
-                      customerId: detailModal.data.customerId,
-                      value: detailModal.data.value,
-                      signDate: detailModal.data.signDate,
-                      expireDate: detailModal.data.expireDate,
-                      managerId: detailModal.data.managerId,
-                      status: detailModal.data.status,
-                      content: detailModal.data.content
+                      title: detailModal.data?.title,
+                      customerId: detailModal.data?.customerId,
+                      value: detailModal.data?.value,
+                      signDate: detailModal.data?.signDate,
+                      expireDate: detailModal.data?.expireDate,
+                      managerId: detailModal.data?.managerId,
+                      status: detailModal.data?.status,
+                      content: detailModal.data?.content,
+                      attachmentName: detailModal.data?.attachmentName,
+                      attachmentUrl: detailModal.data?.attachmentUrl
                     }}
                   >
                     <Row gutter={16}>
@@ -2725,8 +2750,76 @@ export default function App() {
                       </Col>
                       <Col span={24}>
                         <Form.Item name="content" label="Nội dung">
-                          <Input.TextArea rows={3} />
+                          <Input.TextArea rows={2} />
                         </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item name="_contractFileEdit" label="File đính kèm (Hợp đồng scan/ký kết)">
+                          {isMobile ? (
+                            <div className="space-y-2">
+                              <Upload
+                                maxCount={1}
+                                showUploadList={false}
+                                beforeUpload={(file) => {
+                                  setSelectedFile(file);
+                                  editForm.setFieldsValue({
+                                    attachmentName: file.name,
+                                    attachmentUrl: `/uploads/${file.name}`
+                                  });
+                                  return false;
+                                }}
+                              >
+                                <Button 
+                                  type="dashed" 
+                                  icon={<span>📸</span>} 
+                                  block 
+                                  size="large"
+                                  style={{ height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <span style={{ fontWeight: 500 }}>Thay đổi / Chụp lại hợp đồng</span>
+                                </Button>
+                              </Upload>
+                              {(selectedFile || editForm.getFieldValue('attachmentName')) && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}>
+                                  <span style={{ fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                                    📎 {selectedFile ? selectedFile.name : editForm.getFieldValue('attachmentName')}
+                                  </span>
+                                  <Button type="text" danger size="small" onClick={() => { setSelectedFile(null); editForm.setFieldsValue({ attachmentName: '', attachmentUrl: '' }); }}>Xóa</Button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Upload.Dragger
+                                maxCount={1}
+                                beforeUpload={(file) => {
+                                  setSelectedFile(file);
+                                  editForm.setFieldsValue({
+                                    attachmentName: file.name,
+                                    attachmentUrl: `/uploads/${file.name}`
+                                  });
+                                  return false;
+                                }}
+                                onRemove={() => {
+                                  setSelectedFile(null);
+                                  editForm.setFieldsValue({ attachmentName: '', attachmentUrl: '' });
+                                }}
+                              >
+                                <p style={{ fontSize: 24, margin: '4px 0' }}>📄</p>
+                                <p style={{ fontWeight: 500, fontSize: 13 }}>Kéo thả file hợp đồng mới vào đây</p>
+                                <p style={{ opacity: 0.5, fontSize: 11 }}>hoặc click để chọn file thay thế</p>
+                              </Upload.Dragger>
+                              {(selectedFile || editForm.getFieldValue('attachmentName')) && !selectedFile && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px' }}>
+                                  <span style={{ fontSize: 13 }}>📄 File hiện tại: <strong>{editForm.getFieldValue('attachmentName')}</strong></span>
+                                  <Button type="link" size="small" onClick={() => messageApi.success(`Tải file: ${editForm.getFieldValue('attachmentName')}`)}>Tải xuống</Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Form.Item>
+                        <Form.Item name="attachmentName" hidden><Input /></Form.Item>
+                        <Form.Item name="attachmentUrl" hidden><Input /></Form.Item>
                       </Col>
                     </Row>
                   </Form>
@@ -3011,6 +3104,65 @@ export default function App() {
                 <Form.Item name="status" label="Trạng thái" initialValue="Đang hiệu lực">
                   <Select options={[{ value: 'Nháp', label: 'Nháp' }, { value: 'Chờ ký', label: 'Chờ ký' }, { value: 'Đang hiệu lực', label: 'Đang hiệu lực' }]} />
                 </Form.Item>
+                <Form.Item name="_contractFileUpload" label="File đính kèm (Hợp đồng scan/ký kết)">
+                  {isMobile ? (
+                    <div className="space-y-2">
+                      <Upload
+                        maxCount={1}
+                        showUploadList={false}
+                        beforeUpload={(file) => {
+                          setSelectedFile(file);
+                          form.setFieldsValue({
+                            attachmentName: file.name,
+                            attachmentUrl: `/uploads/${file.name}`
+                          });
+                          return false;
+                        }}
+                      >
+                        <Button 
+                          type="dashed" 
+                          icon={<span>📸</span>} 
+                          block 
+                          size="large"
+                          style={{ height: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <span style={{ fontWeight: 500 }}>Chụp ảnh hợp đồng / Chọn tệp</span>
+                          <span style={{ fontSize: 10, opacity: 0.5 }}>Hỗ trợ PDF, DOCX, Ảnh chụp...</span>
+                        </Button>
+                      </Upload>
+                      {selectedFile && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, marginTop: 8 }}>
+                          <span style={{ fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                            📎 {selectedFile.name}
+                          </span>
+                          <Button type="text" danger size="small" onClick={() => { setSelectedFile(null); form.setFieldsValue({ attachmentName: '', attachmentUrl: '' }); }}>Xóa</Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Upload.Dragger
+                      maxCount={1}
+                      beforeUpload={(file) => {
+                        setSelectedFile(file);
+                        form.setFieldsValue({
+                          attachmentName: file.name,
+                          attachmentUrl: `/uploads/${file.name}`
+                        });
+                        return false;
+                      }}
+                      onRemove={() => {
+                        setSelectedFile(null);
+                        form.setFieldsValue({ attachmentName: '', attachmentUrl: '' });
+                      }}
+                    >
+                      <p style={{ fontSize: 24, margin: '4px 0' }}>📄</p>
+                      <p style={{ fontWeight: 500, fontSize: 13 }}>Kéo thả file hợp đồng vào đây</p>
+                      <p style={{ opacity: 0.5, fontSize: 11 }}>hoặc click để chọn từ máy tính</p>
+                    </Upload.Dragger>
+                  )}
+                </Form.Item>
+                <Form.Item name="attachmentName" hidden><Input /></Form.Item>
+                <Form.Item name="attachmentUrl" hidden><Input /></Form.Item>
               </>
             )}
 

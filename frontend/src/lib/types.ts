@@ -167,6 +167,8 @@ export interface Contract {
   expireDate: string;
   managerId: string;
   status: 'Nháp' | 'Chờ ký' | 'Đang hiệu lực' | 'Hoàn thành' | 'Hủy';
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 export interface Timekeeping {

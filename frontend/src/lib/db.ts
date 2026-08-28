@@ -161,8 +161,8 @@ export function ensureInitialized() {
 
   // 13. Hợp đồng
   db.contracts = [
-    { id: 'HD-001', customerId: 'KH-001', profileId: 'HS-2026-001', title: 'Hợp đồng dịch vụ pháp lý cấp sổ đỏ số 01/2026', value: 15000000, signDate: todayStr, effectiveDate: todayStr, expireDate: deadlineProfile15, managerId: 'NV-005', status: 'Đang hiệu lực' },
-    { id: 'HD-002', customerId: 'KH-002', lawsuitId: 'VA-2026-003', title: 'Hợp đồng bào chữa tố tụng tranh chấp thương mại số 02/2026', value: 30000000, signDate: todayStr, effectiveDate: todayStr, expireDate: deadlineLawsuit30, managerId: 'NV-003', status: 'Đang hiệu lực' },
+    { id: 'HD-001', customerId: 'KH-001', profileId: 'HS-2026-001', title: 'Hợp đồng dịch vụ pháp lý cấp sổ đỏ số 01/2026', value: 15000000, signDate: todayStr, effectiveDate: todayStr, expireDate: deadlineProfile15, managerId: 'NV-005', status: 'Đang hiệu lực', attachmentName: 'hopdong_sodo_mau.pdf', attachmentUrl: '/uploads/hopdong_sodo_mau.pdf' },
+    { id: 'HD-002', customerId: 'KH-002', lawsuitId: 'VA-2026-003', title: 'Hợp đồng bào chữa tố tụng tranh chấp thương mại số 02/2026', value: 30000000, signDate: todayStr, effectiveDate: todayStr, expireDate: deadlineLawsuit30, managerId: 'NV-003', status: 'Đang hiệu lực', attachmentName: 'hopdong_baochua_mau.pdf', attachmentUrl: '/uploads/hopdong_baochua_mau.pdf' },
   ];
 
   // 14. Chấm công
