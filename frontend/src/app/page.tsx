@@ -54,6 +54,19 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import { useSortable, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import {
   dashboardApi,
   customerApi,
   serviceProfileApi,
@@ -195,7 +208,137 @@ function Table<RecordType extends object = any>({
   );
 }
 
-// Drag and Drop Kanban Board for Tasks
+// ─── Kanban: Sortable Card ────────────────────────────────────────────────────
+interface TaskCardProps {
+  task: any;
+  staff: any[];
+  onOpenDetail: (type: any, id: string) => void;
+  isDragging?: boolean;
+}
+
+function TaskCard({ task, staff, onOpenDetail, isDragging = false }: TaskCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    touchAction: 'none'
+  };
+  const assignee = staff.find((s: any) => s.id === task.assigneeId);
+  const isOverdue = task.status !== 'Hoàn thành' && task.deadline < new Date().toISOString().split('T')[0];
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={() => onOpenDetail('task', task.id)}
+      className="p-3 rounded-lg border border-[var(--glass-border)] bg-[hsl(var(--surface))] shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing hover:border-blue-500/50 space-y-2 select-none"
+    >
+      <div className="font-semibold text-xs leading-snug line-clamp-2" style={{ color: 'var(--text)' }}>
+        {task.title}
+      </div>
+      <div className="flex justify-between items-center">
+        <Tag color={task.priority === 'Khẩn cấp' ? 'red' : task.priority === 'Cao' ? 'orange' : 'blue'} className="text-[10px] m-0">
+          {task.priority}
+        </Tag>
+        {isOverdue && <Tag color="red" className="text-[10px] m-0">Quá hạn</Tag>}
+      </div>
+      <div className="flex justify-between items-center border-t border-[var(--border)] pt-2 text-[10px] text-gray-400">
+        <Space size={4}>
+          <Avatar size={18} style={{ backgroundColor: '#2563eb', fontSize: '9px' }}>
+            {assignee ? assignee.name[0] : 'U'}
+          </Avatar>
+          <span>{assignee ? assignee.name : 'Chưa gán'}</span>
+        </Space>
+        <span className="font-mono">{dayjs(task.deadline).format('DD/MM')}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Kanban: Task Card Overlay (clone khi đang kéo) ──────────────────────────
+function TaskCardOverlay({ task, staff }: { task: any; staff: any[] }) {
+  const assignee = staff.find((s: any) => s.id === task.assigneeId);
+  const isOverdue = task.status !== 'Hoàn thành' && task.deadline < new Date().toISOString().split('T')[0];
+  return (
+    <div className="p-3 rounded-lg border border-blue-500 bg-[hsl(var(--surface))] shadow-2xl space-y-2 select-none rotate-2" style={{ opacity: 0.95, touchAction: 'none' }}>
+      <div className="font-semibold text-xs leading-snug line-clamp-2" style={{ color: 'var(--text)' }}>
+        {task.title}
+      </div>
+      <div className="flex justify-between items-center">
+        <Tag color={task.priority === 'Khẩn cấp' ? 'red' : task.priority === 'Cao' ? 'orange' : 'blue'} className="text-[10px] m-0">
+          {task.priority}
+        </Tag>
+        {isOverdue && <Tag color="red" className="text-[10px] m-0">Quá hạn</Tag>}
+      </div>
+      <div className="flex justify-between items-center border-t border-[var(--border)] pt-2 text-[10px] text-gray-400">
+        <Space size={4}>
+          <Avatar size={18} style={{ backgroundColor: '#2563eb', fontSize: '9px' }}>
+            {assignee ? assignee.name[0] : 'U'}
+          </Avatar>
+          <span>{assignee ? assignee.name : 'Chưa gán'}</span>
+        </Space>
+        <span className="font-mono">{dayjs(task.deadline).format('DD/MM')}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Kanban: Droppable Column ─────────────────────────────────────────────────
+interface KanbanColumnProps {
+  col: { key: string; title: string; color: string };
+  colTasks: any[];
+  staff: any[];
+  onOpenDetail: (type: any, id: string) => void;
+  activeTaskId: string | null;
+  isOver: boolean;
+}
+
+function KanbanColumn({ col, colTasks, staff, onOpenDetail, activeTaskId, isOver }: KanbanColumnProps) {
+  const badgeColor = col.color === 'blue' ? '#3b82f6' : col.color === 'orange' ? '#f97316' : col.color === 'purple' ? '#a855f7' : '#22c55e';
+  return (
+    <div
+      className="flex flex-col rounded-xl border transition-all duration-200"
+      style={{
+        background: isOver ? 'rgba(37, 99, 235, 0.08)' : 'rgba(128, 128, 128, 0.03)',
+        borderColor: isOver ? 'var(--primary)' : 'var(--glass-border)',
+        minWidth: '220px',
+        flex: '1 1 0'
+      }}
+    >
+      {/* Column Header */}
+      <div className="p-3 border-b border-[var(--border)] flex justify-between items-center">
+        <Space>
+          <Badge color={badgeColor} />
+          <span className="font-bold text-xs">{col.title}</span>
+          <Tag className="ml-1 text-[10px] py-0 px-1">{colTasks.length}</Tag>
+        </Space>
+      </div>
+
+      {/* Tasks list */}
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto" style={{ minHeight: '80px' }}>
+        <SortableContext items={colTasks.map((t: any) => t.id)} strategy={rectSortingStrategy}>
+          {colTasks.map((task: any) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              staff={staff}
+              onOpenDetail={onOpenDetail}
+              isDragging={activeTaskId === task.id}
+            />
+          ))}
+        </SortableContext>
+        {colTasks.length === 0 && (
+          <div className="text-center text-gray-400 py-10 text-xs">Kéo thả việc vào đây</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Kanban Board (Main) ──────────────────────────────────────────────────────
 interface TaskKanbanProps {
   tasks: any[];
   staff: any[];
@@ -204,8 +347,9 @@ interface TaskKanbanProps {
   onUpdateStatus: (id: string, status: string) => Promise<void>;
 }
 
-function TaskKanban({ tasks, staff, departments, onOpenDetail, onUpdateStatus }: TaskKanbanProps) {
-  const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
+function TaskKanban({ tasks, staff, onOpenDetail, onUpdateStatus }: TaskKanbanProps) {
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [overColKey, setOverColKey] = useState<string | null>(null);
 
   const columns = [
     { key: 'Chưa bắt đầu', title: 'Chưa bắt đầu', color: 'blue' },
@@ -214,101 +358,96 @@ function TaskKanban({ tasks, staff, departments, onOpenDetail, onUpdateStatus }:
     { key: 'Hoàn thành', title: 'Hoàn thành', color: 'green' }
   ];
 
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData('text/plain', taskId);
+  // Hỗ trợ cả chuột (desktop) và cảm ứng (di động)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
+
+  const getTaskColumnKey = (taskId: string) => {
+    const task = tasks.find((t: any) => t.id === taskId);
+    return task ? task.status : null;
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveTaskId(String(event.active.id));
   };
 
-  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
-    e.preventDefault();
-    setDraggedOverCol(null);
-    const taskId = e.dataTransfer.getData('text/plain');
-    if (taskId) {
-      await onUpdateStatus(taskId, targetStatus);
+  const handleDragOver = (event: any) => {
+    const { over } = event;
+    if (!over) return;
+    // Nếu thả lên một column key trực tiếp
+    const colKey = columns.find(c => c.key === String(over.id))?.key;
+    if (colKey) {
+      setOverColKey(colKey);
+      return;
+    }
+    // Nếu thả lên một task trong cột khác
+    const overTask = tasks.find((t: any) => t.id === String(over.id));
+    if (overTask) setOverColKey(overTask.status);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTaskId(null);
+    setOverColKey(null);
+    if (!over) return;
+
+    const taskId = String(active.id);
+    const currentColKey = getTaskColumnKey(taskId);
+
+    // Xác định cột đích: over có thể là column key hoặc task id trong cột đích
+    let targetColKey: string | null = null;
+    const directCol = columns.find(c => c.key === String(over.id));
+    if (directCol) {
+      targetColKey = directCol.key;
+    } else {
+      const overTask = tasks.find((t: any) => t.id === String(over.id));
+      if (overTask) targetColKey = overTask.status;
+    }
+
+    if (targetColKey && targetColKey !== currentColKey) {
+      await onUpdateStatus(taskId, targetColKey);
     }
   };
 
+  const activeTask = activeTaskId ? tasks.find((t: any) => t.id === activeTaskId) : null;
+
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex gap-4 min-w-[900px] h-[60vh]">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      {/* Desktop: flex-row cuộn ngang / Mobile: flex-col cuộn dọc */}
+      <div className="
+        flex flex-col gap-4
+        sm:flex-row sm:overflow-x-auto
+        pb-4
+      " style={{ minHeight: '400px' }}>
         {columns.map(col => {
-          const colTasks = tasks.filter(t => t.status === col.key);
-          const isOver = draggedOverCol === col.key;
-
+          const colTasks = tasks.filter((t: any) => t.status === col.key);
           return (
-            <div
+            <KanbanColumn
               key={col.key}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, col.key)}
-              onDragEnter={() => setDraggedOverCol(col.key)}
-              onDragLeave={() => setDraggedOverCol(null)}
-              className="flex-1 flex flex-col rounded-xl border transition-all duration-200"
-              style={{
-                background: isOver ? 'rgba(37, 99, 235, 0.08)' : 'rgba(128, 128, 128, 0.03)',
-                borderColor: isOver ? 'var(--primary)' : 'var(--glass-border)',
-                minWidth: '220px'
-              }}
-            >
-              {/* Column Header */}
-              <div className="p-3 border-b border-[var(--border)] flex justify-between items-center bg-[hsla(0,0%,50%,0.02)]">
-                <Space>
-                  <Badge color={col.color === 'blue' ? '#3b82f6' : col.color === 'orange' ? '#f97316' : col.color === 'purple' ? '#a855f7' : '#22c55e'} />
-                  <span className="font-bold text-xs">{col.title}</span>
-                  <Tag className="ml-1 text-[10px] py-0 px-1">{colTasks.length}</Tag>
-                </Space>
-              </div>
-
-              {/* Tasks list */}
-              <div className="flex-1 p-2 space-y-2 overflow-y-auto custom-scrollbar">
-                {colTasks.map(task => {
-                  const assignee = staff.find(s => s.id === task.assigneeId);
-                  const isOverdue = task.status !== 'Hoàn thành' && task.deadline < new Date().toISOString().split('T')[0];
-
-                  return (
-                    <div
-                      key={task.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task.id)}
-                      onClick={() => onOpenDetail('task', task.id)}
-                      className="p-3 rounded-lg border border-[var(--glass-border)] bg-[hsl(var(--surface))] shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing hover:border-blue-500/50 space-y-3"
-                    >
-                      <div className="font-semibold text-xs text-gray-800 dark:text-gray-200 leading-snug line-clamp-2">
-                        {task.title}
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <Tag color={task.priority === 'Khẩn cấp' ? 'red' : task.priority === 'Cao' ? 'orange' : 'blue'} className="text-[10px] m-0">
-                          {task.priority}
-                        </Tag>
-                        {isOverdue && (
-                          <Tag color="red" className="text-[10px] m-0">Quá hạn</Tag>
-                        )}
-                      </div>
-
-                      <div className="flex justify-between items-center border-t border-[var(--border)] pt-2 mt-2 text-[10px] text-gray-400">
-                        <Space size={4}>
-                          <Avatar size={18} style={{ backgroundColor: '#2563eb', fontSize: '9px' }}>
-                            {assignee ? assignee.name[0] : 'U'}
-                          </Avatar>
-                          <span>{assignee ? assignee.name : 'Chưa gán'}</span>
-                        </Space>
-                        <span className="font-mono">{dayjs(task.deadline).format('DD/MM')}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {colTasks.length === 0 && (
-                  <div className="text-center text-gray-400 py-10 text-xs">Kéo thả việc vào đây</div>
-                )}
-              </div>
-            </div>
+              col={col}
+              colTasks={colTasks}
+              staff={staff}
+              onOpenDetail={onOpenDetail}
+              activeTaskId={activeTaskId}
+              isOver={overColKey === col.key}
+            />
           );
         })}
       </div>
-    </div>
+
+      {/* Bóng thẻ đang kéo (hiển thị ở mọi thiết bị) */}
+      <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+        {activeTask ? <TaskCardOverlay task={activeTask} staff={staff} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
