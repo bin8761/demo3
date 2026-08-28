@@ -27,7 +27,9 @@ import {
   Divider,
   Typography,
   Switch,
-  Radio
+  Radio,
+  Calendar,
+  Tooltip
 } from 'antd';
 import type { TableProps as AntdTableProps } from 'antd';
 import {
@@ -483,6 +485,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'table' | 'kanban'>('kanban');
+  const [scheduleViewMode, setScheduleViewMode] = useState<'calendar' | 'list'>('calendar');
   const [currentUser, setCurrentUser] = useState({
     id: 'NV-001',
     name: 'Nguyễn Văn Trưởng',
@@ -1495,42 +1498,127 @@ export default function App() {
                 <Card
                   title="Lịch làm việc"
                   extra={
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'schedule' })}>
-                      Tạo lịch hẹn
-                    </Button>
+                    <Space size={12}>
+                      <Radio.Group
+                        value={scheduleViewMode}
+                        onChange={(e) => setScheduleViewMode(e.target.value)}
+                        size="middle"
+                      >
+                        <Radio.Button value="calendar">Lịch</Radio.Button>
+                        <Radio.Button value="list">Danh sách</Radio.Button>
+                      </Radio.Group>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'schedule' })}>
+                        Tạo lịch hẹn
+                      </Button>
+                    </Space>
                   }
                   className="glass-panel"
                 >
-                  <Table
-                    dataSource={schedules}
-                    rowKey="id"
-                    onRow={(record) => ({
-                      onClick: () => handleOpenDetail('schedule', record.id),
-                      style: { cursor: 'pointer' }
-                    })}
-                    columns={[
-                      { title: 'Tiêu đề', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
-                      { title: 'Loại lịch', dataIndex: 'type', key: 'type', render: (t) => <Tag color="blue">{t}</Tag> },
-                      { title: 'Thời gian', dataIndex: 'dateTime', key: 'dateTime', render: (val) => dayjs(val).format('HH:mm DD/MM/YYYY') },
-                      {
-                        title: 'Tham gia',
-                        dataIndex: 'staffIds',
-                        key: 'staffIds',
-                        render: (ids: string[]) => ids.map(id => staff.find(s => s.id === id)?.name).join(', ')
-                      },
-                      { title: 'Ghi chú', dataIndex: 'notes', key: 'notes' },
-                      {
-                        title: 'Thao tác',
-                        key: 'action',
-                        render: (_, record) => (
-                          <Space>
-                            <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); handleOpenDetail('schedule', record.id); }}>Chi tiết</Button>
-                            <Button size="small" type="link" danger onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(record.id); }}>Xóa</Button>
-                          </Space>
-                        )
-                      }
-                    ]}
-                  />
+                  {scheduleViewMode === 'calendar' ? (
+                    <div>
+                      <Calendar
+                        fullscreen={false}
+                        cellRender={(current, info) => {
+                          if (info.type !== 'date') return info.originNode;
+                          const dateStr = current.format('YYYY-MM-DD');
+                          const daySchedules = schedules.filter((s: any) => {
+                            const d = dayjs(s.dateTime).format('YYYY-MM-DD');
+                            return d === dateStr;
+                          });
+                          if (daySchedules.length === 0) return null;
+                          return (
+                            <ul className="m-0 p-0 list-none">
+                              {daySchedules.slice(0, 2).map((s: any) => (
+                                <Tooltip key={s.id} title={`${dayjs(s.dateTime).format('HH:mm')} - ${s.title}`}>
+                                  <li
+                                    onClick={(e) => { e.stopPropagation(); handleOpenDetail('schedule', s.id); }}
+                                    className="truncate text-[10px] rounded px-1 mb-0.5 cursor-pointer"
+                                    style={{
+                                      background: s.type === 'Hẹn khách' ? 'rgba(37,99,235,0.15)' : s.type === 'Lịch tòa' ? 'rgba(220,38,38,0.15)' : 'rgba(16,185,129,0.15)',
+                                      color: s.type === 'Hẹn khách' ? '#2563eb' : s.type === 'Lịch tòa' ? '#dc2626' : '#059669'
+                                    }}
+                                  >
+                                    ● {dayjs(s.dateTime).format('HH:mm')} {s.title}
+                                  </li>
+                                </Tooltip>
+                              ))}
+                              {daySchedules.length > 2 && (
+                                <li className="text-[10px] text-gray-400">+{daySchedules.length - 2} khác</li>
+                              )}
+                            </ul>
+                          );
+                        }}
+                        style={{ borderRadius: '8px' }}
+                      />
+
+                      {/* Danh sách lịch trong tháng này */}
+                      <div className="mt-4">
+                        <Divider className="text-xs">Sự kiện sắp tới</Divider>
+                        <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                          {schedules
+                            .filter((s: any) => dayjs(s.dateTime).isAfter(dayjs().subtract(1, 'day')))
+                            .sort((a: any, b: any) => dayjs(a.dateTime).unix() - dayjs(b.dateTime).unix())
+                            .slice(0, 8)
+                            .map((s: any) => (
+                              <div
+                                key={s.id}
+                                onClick={() => handleOpenDetail('schedule', s.id)}
+                                className="flex items-start gap-3 p-3 rounded-lg border border-[var(--glass-border)] hover:border-blue-400/50 cursor-pointer transition-all"
+                              >
+                                <div
+                                  className="w-10 h-10 rounded-lg flex flex-col items-center justify-center shrink-0 text-white text-xs font-bold"
+                                  style={{ background: s.type === 'Hẹn khách' ? '#2563eb' : s.type === 'Lịch tòa' ? '#dc2626' : '#059669' }}
+                                >
+                                  <span className="text-[10px] leading-none">{dayjs(s.dateTime).format('DD')}</span>
+                                  <span className="text-[8px] leading-none opacity-80">{dayjs(s.dateTime).format('MMM')}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{s.title}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5">
+                                    ⏰ {dayjs(s.dateTime).format('HH:mm')} · {s.type}
+                                  </div>
+                                </div>
+                                <Tag color={s.type === 'Hẹn khách' ? 'blue' : s.type === 'Lịch tòa' ? 'red' : 'green'} className="shrink-0">{s.type}</Tag>
+                              </div>
+                            ))}
+                          {schedules.filter((s: any) => dayjs(s.dateTime).isAfter(dayjs().subtract(1, 'day'))).length === 0 && (
+                            <div className="text-center text-gray-400 py-6 text-sm">Không có sự kiện sắp tới</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <Table
+                      dataSource={schedules}
+                      rowKey="id"
+                      onRow={(record) => ({
+                        onClick: () => handleOpenDetail('schedule', record.id),
+                        style: { cursor: 'pointer' }
+                      })}
+                      columns={[
+                        { title: 'Tiêu đề', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                        { title: 'Loại lịch', dataIndex: 'type', key: 'type', render: (t) => <Tag color="blue">{t}</Tag> },
+                        { title: 'Thời gian', dataIndex: 'dateTime', key: 'dateTime', render: (val) => dayjs(val).format('HH:mm DD/MM/YYYY') },
+                        {
+                          title: 'Tham gia',
+                          dataIndex: 'staffIds',
+                          key: 'staffIds',
+                          render: (ids: string[]) => ids.map(id => staff.find(s => s.id === id)?.name).join(', ')
+                        },
+                        { title: 'Ghi chú', dataIndex: 'notes', key: 'notes' },
+                        {
+                          title: 'Thao tác',
+                          key: 'action',
+                          render: (_, record) => (
+                            <Space>
+                              <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); handleOpenDetail('schedule', record.id); }}>Chi tiết</Button>
+                              <Button size="small" type="link" danger onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(record.id); }}>Xóa</Button>
+                            </Space>
+                          )
+                        }
+                      ]}
+                    />
+                  )}
                 </Card>
               )}
 
