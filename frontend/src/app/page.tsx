@@ -852,7 +852,7 @@ export default function App() {
   const handleUpdateSchedule = async (values: any) => {
     try {
       const formattedValues = { ...values };
-      if (formattedValues.dateTime && dayjs.isDayjs(formattedValues.dateTime)) {
+      if (formattedValues.dateTime && typeof formattedValues.dateTime.format === 'function') {
         formattedValues.dateTime = formattedValues.dateTime.format('YYYY-MM-DDTHH:mm:ss');
       }
       await scheduleApi.update(detailModal.data.id, formattedValues);
@@ -1664,7 +1664,7 @@ export default function App() {
                           title: 'Tham gia',
                           dataIndex: 'staffIds',
                           key: 'staffIds',
-                          render: (ids: string[]) => ids.map(id => staff.find(s => s.id === id)?.name).join(', ')
+                          render: (ids: string[]) => (ids || []).map(id => staff.find(s => s.id === id)?.name || id).join(', ')
                         },
                         { title: 'Ghi chú', dataIndex: 'notes', key: 'notes' },
                         {
