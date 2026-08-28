@@ -540,24 +540,6 @@ export default function App() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Đồng bộ form edit mỗi khi mở detailModal
-  useEffect(() => {
-    if (detailModal.visible && detailModal.data) {
-      if (detailModal.type === 'schedule' && detailModal.data.dateTime) {
-        const dt = dayjs(detailModal.data.dateTime);
-        editForm.setFieldsValue({
-          ...detailModal.data,
-          scheduleDate: dt.isValid() ? dt : null,
-          scheduleTime: dt.isValid() ? dt : null,
-        });
-      } else {
-        editForm.setFieldsValue(detailModal.data);
-      }
-    } else {
-      editForm.resetFields();
-    }
-  }, [detailModal, editForm]);
-
   const handleMenuClick = useCallback((e: any) => {
     setCurrentMenu(e.key);
     if (isMobile) setSidebarOpen(false);
@@ -854,6 +836,9 @@ export default function App() {
 
   const handleUpdateSchedule = async (values: any) => {
     try {
+      // Log toàn bộ values để kiểm tra
+      messageApi.info(`Form values: ${JSON.stringify(values)}`);
+      
       const { scheduleDate, scheduleTime, ...rest } = values;
       let dateTime = rest.dateTime || '';
       if (scheduleDate && scheduleTime) {
@@ -866,7 +851,7 @@ export default function App() {
       const payload = { ...rest, dateTime };
       
       // Hiển thị thông báo log giá trị gửi đi
-      messageApi.info(`Đang cập nhật - ID: ${detailModal.data.id}, Ngày giờ mới: ${dateTime}`);
+      messageApi.info(`Đang cập nhật - ID: ${detailModal.data?.id}, Ngày giờ mới: ${dateTime}`);
       
       await scheduleApi.update(detailModal.data.id, payload);
       setSchedules(prev => prev.map(s => s.id === detailModal.data.id ? { ...s, ...payload } : s));
@@ -2467,7 +2452,8 @@ export default function App() {
                     initialValues={{
                       title: detailModal.data?.title,
                       type: detailModal.data?.type,
-                      dateTime: detailModal.data?.dateTime,
+                      scheduleDate: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime) : null,
+                      scheduleTime: detailModal.data?.dateTime ? dayjs(detailModal.data.dateTime) : null,
                       staffIds: detailModal.data?.staffIds,
                       customerId: detailModal.data?.customerId,
                       notes: detailModal.data?.notes
