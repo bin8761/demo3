@@ -26,7 +26,8 @@ import {
   message,
   Divider,
   Typography,
-  Switch
+  Switch,
+  Radio
 } from 'antd';
 import type { TableProps as AntdTableProps } from 'antd';
 import {
@@ -194,6 +195,123 @@ function Table<RecordType extends object = any>({
   );
 }
 
+// Drag and Drop Kanban Board for Tasks
+interface TaskKanbanProps {
+  tasks: any[];
+  staff: any[];
+  departments: any[];
+  onOpenDetail: (type: any, id: string) => void;
+  onUpdateStatus: (id: string, status: string) => Promise<void>;
+}
+
+function TaskKanban({ tasks, staff, departments, onOpenDetail, onUpdateStatus }: TaskKanbanProps) {
+  const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
+
+  const columns = [
+    { key: 'Chưa bắt đầu', title: 'Chưa bắt đầu', color: 'blue' },
+    { key: 'Đang thực hiện', title: 'Đang thực hiện', color: 'orange' },
+    { key: 'Chờ xử lý', title: 'Chờ xử lý', color: 'purple' },
+    { key: 'Hoàn thành', title: 'Hoàn thành', color: 'green' }
+  ];
+
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData('text/plain', taskId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault();
+    setDraggedOverCol(null);
+    const taskId = e.dataTransfer.getData('text/plain');
+    if (taskId) {
+      await onUpdateStatus(taskId, targetStatus);
+    }
+  };
+
+  return (
+    <div className="overflow-x-auto pb-4">
+      <div className="flex gap-4 min-w-[900px] h-[60vh]">
+        {columns.map(col => {
+          const colTasks = tasks.filter(t => t.status === col.key);
+          const isOver = draggedOverCol === col.key;
+
+          return (
+            <div
+              key={col.key}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, col.key)}
+              onDragEnter={() => setDraggedOverCol(col.key)}
+              onDragLeave={() => setDraggedOverCol(null)}
+              className="flex-1 flex flex-col rounded-xl border transition-all duration-200"
+              style={{
+                background: isOver ? 'rgba(37, 99, 235, 0.08)' : 'rgba(128, 128, 128, 0.03)',
+                borderColor: isOver ? 'var(--primary)' : 'var(--glass-border)',
+                minWidth: '220px'
+              }}
+            >
+              {/* Column Header */}
+              <div className="p-3 border-b border-[var(--border)] flex justify-between items-center bg-[hsla(0,0%,50%,0.02)]">
+                <Space>
+                  <Badge color={col.color === 'blue' ? '#3b82f6' : col.color === 'orange' ? '#f97316' : col.color === 'purple' ? '#a855f7' : '#22c55e'} />
+                  <span className="font-bold text-xs">{col.title}</span>
+                  <Tag className="ml-1 text-[10px] py-0 px-1">{colTasks.length}</Tag>
+                </Space>
+              </div>
+
+              {/* Tasks list */}
+              <div className="flex-1 p-2 space-y-2 overflow-y-auto custom-scrollbar">
+                {colTasks.map(task => {
+                  const assignee = staff.find(s => s.id === task.assigneeId);
+                  const isOverdue = task.status !== 'Hoàn thành' && task.deadline < new Date().toISOString().split('T')[0];
+
+                  return (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, task.id)}
+                      onClick={() => onOpenDetail('task', task.id)}
+                      className="p-3 rounded-lg border border-[var(--glass-border)] bg-[hsl(var(--surface))] shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing hover:border-blue-500/50 space-y-3"
+                    >
+                      <div className="font-semibold text-xs text-gray-800 dark:text-gray-200 leading-snug line-clamp-2">
+                        {task.title}
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <Tag color={task.priority === 'Khẩn cấp' ? 'red' : task.priority === 'Cao' ? 'orange' : 'blue'} className="text-[10px] m-0">
+                          {task.priority}
+                        </Tag>
+                        {isOverdue && (
+                          <Tag color="red" className="text-[10px] m-0">Quá hạn</Tag>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center border-t border-[var(--border)] pt-2 mt-2 text-[10px] text-gray-400">
+                        <Space size={4}>
+                          <Avatar size={18} style={{ backgroundColor: '#2563eb', fontSize: '9px' }}>
+                            {assignee ? assignee.name[0] : 'U'}
+                          </Avatar>
+                          <span>{assignee ? assignee.name : 'Chưa gán'}</span>
+                        </Space>
+                        <span className="font-mono">{dayjs(task.deadline).format('DD/MM')}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {colTasks.length === 0 && (
+                  <div className="text-center text-gray-400 py-10 text-xs">Kéo thả việc vào đây</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [mounted, setMounted] = useState(false);
@@ -201,6 +319,7 @@ export default function App() {
   const [currentMenu, setCurrentMenu] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [taskViewMode, setTaskViewMode] = useState<'table' | 'kanban'>('kanban');
   const [currentUser, setCurrentUser] = useState({
     id: 'NV-001',
     name: 'Nguyễn Văn Trưởng',
@@ -534,6 +653,16 @@ export default function App() {
       messageApi.success('Xóa công việc thành công');
     } catch (e) {
       messageApi.error('Xóa công việc thất bại');
+    }
+  };
+
+  const handleUpdateTaskStatus = async (id: string, newStatus: string) => {
+    try {
+      await taskApi.update(id, { status: newStatus });
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+      messageApi.success('Cập nhật trạng thái thành công');
+    } catch (e) {
+      messageApi.error('Không thể cập nhật trạng thái');
     }
   };
 
@@ -1120,65 +1249,79 @@ export default function App() {
                 <Card
                   title="Quản lý công việc"
                   extra={
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'task' })}>
-                      Giao việc mới
-                    </Button>
+                    <Space size={12}>
+                      <Radio.Group
+                        value={taskViewMode}
+                        onChange={(e) => setTaskViewMode(e.target.value)}
+                        size="middle"
+                      >
+                        <Radio.Button value="kanban">Bảng Kanban</Radio.Button>
+                        <Radio.Button value="table">Danh sách</Radio.Button>
+                      </Radio.Group>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'task' })}>
+                        Giao việc mới
+                      </Button>
+                    </Space>
                   }
                   className="glass-panel"
                 >
-                  <Table
-                    dataSource={tasks}
-                    rowKey="id"
-                    onRow={(record) => ({
-                      onClick: () => handleOpenDetail('task', record.id),
-                      style: { cursor: 'pointer' }
-                    })}
-                    columns={[
-                      { title: 'Công việc', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
-                      { title: 'Người thực hiện', dataIndex: 'assigneeId', key: 'assigneeId', render: (id) => staff.find(s => s.id === id)?.name || id },
-                      { title: 'Phòng ban', dataIndex: 'departmentId', key: 'departmentId', render: (id) => departments.find(d => d.id === id)?.name || id },
-                      { title: 'Hạn chót', dataIndex: 'deadline', key: 'deadline' },
-                      { title: 'Mức ưu tiên', dataIndex: 'priority', key: 'priority', render: (p) => <Tag color={p === 'Khẩn cấp' ? 'red' : p === 'Cao' ? 'orange' : 'blue'}>{p}</Tag> },
-                      {
-                        title: 'Trạng thái',
-                        dataIndex: 'status',
-                        key: 'status',
-                        render: (s, record) => (
-                          <Select
-                            value={s}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={async (newStatus) => {
-                              try {
-                                await taskApi.update(record.id, { status: newStatus });
-                                setTasks(prev => prev.map(t => t.id === record.id ? { ...t, status: newStatus } : t));
-                                messageApi.success('Cập nhật trạng thái thành công');
-                              } catch (e) {
-                                messageApi.error('Không thể cập nhật trạng thái');
-                              }
-                            }}
-                            options={[
-                              { value: 'Chưa bắt đầu', label: 'Chưa bắt đầu' },
-                              { value: 'Đang thực hiện', label: 'Đang thực hiện' },
-                              { value: 'Chờ xử lý', label: 'Chờ xử lý' },
-                              { value: 'Hoàn thành', label: 'Hoàn thành' },
-                              { value: 'Quá hạn', label: 'Quá hạn' },
-                              { value: 'Hủy', label: 'Hủy' }
-                            ]}
-                          />
-                        )
-                      },
-                      {
-                        title: 'Thao tác',
-                        key: 'action',
-                        render: (_, record) => (
-                          <Space>
-                            <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); handleOpenDetail('task', record.id); }}>Chi tiết</Button>
-                            <Button size="small" type="link" danger onClick={(e) => { e.stopPropagation(); handleDeleteTask(record.id); }}>Xóa</Button>
-                          </Space>
-                        )
-                      }
-                    ]}
-                  />
+                  {taskViewMode === 'kanban' ? (
+                    <TaskKanban
+                      tasks={tasks}
+                      staff={staff}
+                      departments={departments}
+                      onOpenDetail={handleOpenDetail}
+                      onUpdateStatus={handleUpdateTaskStatus}
+                    />
+                  ) : (
+                    <Table
+                      dataSource={tasks}
+                      rowKey="id"
+                      onRow={(record) => ({
+                        onClick: () => handleOpenDetail('task', record.id),
+                        style: { cursor: 'pointer' }
+                      })}
+                      columns={[
+                        { title: 'Công việc', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                        { title: 'Người thực hiện', dataIndex: 'assigneeId', key: 'assigneeId', render: (id) => staff.find(s => s.id === id)?.name || id },
+                        { title: 'Phòng ban', dataIndex: 'departmentId', key: 'departmentId', render: (id) => departments.find(d => d.id === id)?.name || id },
+                        { title: 'Hạn chót', dataIndex: 'deadline', key: 'deadline' },
+                        { title: 'Mức ưu tiên', dataIndex: 'priority', key: 'priority', render: (p) => <Tag color={p === 'Khẩn cấp' ? 'red' : p === 'Cao' ? 'orange' : 'blue'}>{p}</Tag> },
+                        {
+                          title: 'Trạng thái',
+                          dataIndex: 'status',
+                          key: 'status',
+                          render: (s, record) => (
+                            <Select
+                              value={s}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={async (newStatus) => {
+                                handleUpdateTaskStatus(record.id, newStatus);
+                              }}
+                              options={[
+                                { value: 'Chưa bắt đầu', label: 'Chưa bắt đầu' },
+                                { value: 'Đang thực hiện', label: 'Đang thực hiện' },
+                                { value: 'Chờ xử lý', label: 'Chờ xử lý' },
+                                { value: 'Hoàn thành', label: 'Hoàn thành' },
+                                { value: 'Quá hạn', label: 'Quá hạn' },
+                                { value: 'Hủy', label: 'Hủy' }
+                              ]}
+                            />
+                          )
+                        },
+                        {
+                          title: 'Thao tác',
+                          key: 'action',
+                          render: (_, record) => (
+                            <Space>
+                              <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); handleOpenDetail('task', record.id); }}>Chi tiết</Button>
+                              <Button size="small" type="link" danger onClick={(e) => { e.stopPropagation(); handleDeleteTask(record.id); }}>Xóa</Button>
+                            </Space>
+                          )
+                        }
+                      ]}
+                    />
+                  )}
                 </Card>
               )}
 
