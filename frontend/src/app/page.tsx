@@ -8,7 +8,7 @@ import {
   Menu,
   Button,
   Card,
-  Table,
+  Table as AntdTable,
   Tag,
   Badge,
   Avatar,
@@ -68,6 +68,95 @@ import {
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
+
+// Custom Table component to handle responsive layout on mobile
+function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination, ...rest }: any) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  if (!isMobile) {
+    return <AntdTable dataSource={dataSource} columns={columns} rowKey={rowKey} onRow={onRow} pagination={pagination} {...rest} />;
+  }
+
+  return (
+    <List
+      dataSource={dataSource}
+      pagination={pagination ? { size: 'small', ...pagination } : undefined}
+      renderItem={(record: any, index: number) => {
+        const actionCol = columns.find((col: any) => col.key === 'action' || col.key === 'operations');
+        const displayCols = columns.filter((col: any) => col.key !== 'action' && col.key !== 'operations' && col.title);
+
+        const titleCol = displayCols.find((col: any) => col.dataIndex === 'name' || col.dataIndex === 'title' || col.dataIndex === 'content') || displayCols[0];
+        const otherCols = displayCols.filter((col: any) => col !== titleCol);
+
+        const handleCardClick = () => {
+          if (onRow) {
+            const rowProps = onRow(record);
+            if (rowProps && rowProps.onClick) {
+              rowProps.onClick();
+            }
+          }
+        };
+
+        const renderTitle = () => {
+          const val = titleCol?.dataIndex ? record[titleCol.dataIndex] : undefined;
+          return titleCol?.render ? titleCol.render(val, record, index) : val || '';
+        };
+
+        return (
+          <List.Item style={{ padding: '8px 0', borderBottom: 'none' }}>
+            <Card
+              className="w-full glass-panel shadow-sm hover:shadow-md transition-shadow"
+              style={{ borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass-bg)' }}
+              styles={{ body: { padding: 16 } }}
+              onClick={handleCardClick}
+              hoverable
+            >
+              <div className="flex justify-between items-start border-b border-[var(--border)] pb-2 mb-3">
+                <span className="font-bold text-sm text-blue-600 dark:text-blue-400 max-w-[80%] truncate">
+                  {renderTitle()}
+                </span>
+                <span className="text-xs text-gray-400 font-mono">
+                  #{record[rowKey] || index + 1}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                {otherCols.map((col: any, colIdx: number) => {
+                  const val = col.dataIndex ? record[col.dataIndex] : undefined;
+                  const renderedVal = col.render ? col.render(val, record, index) : val;
+                  return (
+                    <div key={colIdx} className="flex justify-between items-start gap-2">
+                      <span className="text-gray-400 font-medium whitespace-nowrap">{col.title}:</span>
+                      <span className="text-right font-normal text-gray-600 dark:text-gray-300 truncate max-w-[70%]">
+                        {renderedVal ?? '-'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {actionCol && (
+                <div
+                  className="flex justify-end gap-2 border-t border-[var(--border)] pt-2 mt-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {actionCol.render(null, record, index)}
+                </div>
+              )}
+            </Card>
+          </List.Item>
+        );
+      }}
+    />
+  );
+}
 
 export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
