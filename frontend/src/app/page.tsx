@@ -69,8 +69,24 @@ import {
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
+interface CustomTableProps<RecordType> {
+  dataSource?: RecordType[];
+  columns?: any[];
+  rowKey?: any;
+  onRow?: (record: RecordType, index?: number) => any;
+  pagination?: any;
+  [key: string]: any;
+}
+
 // Custom Table component to handle responsive layout on mobile
-function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination, ...rest }: React.ComponentProps<typeof AntdTable>) {
+function Table<RecordType extends object = any>({
+  dataSource,
+  columns,
+  rowKey = 'id',
+  onRow,
+  pagination,
+  ...rest
+}: CustomTableProps<RecordType>) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -81,23 +97,35 @@ function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination
   }, []);
 
   if (!isMobile) {
-    return <AntdTable dataSource={dataSource} columns={columns} rowKey={rowKey} onRow={onRow} pagination={pagination} {...rest} />;
+    return (
+      <AntdTable
+        dataSource={dataSource}
+        columns={columns as any}
+        rowKey={rowKey}
+        onRow={onRow as any}
+        pagination={pagination}
+        {...rest}
+      />
+    );
   }
+
+  const dataList = (dataSource || []) as any[];
+  const colsList = (columns || []) as any[];
 
   return (
     <List
-      dataSource={dataSource}
-      pagination={pagination ? { size: 'small', ...pagination } : undefined}
+      dataSource={dataList}
+      pagination={pagination ? ({ size: 'small', ...pagination } as any) : undefined}
       renderItem={(record: any, index: number) => {
-        const actionCol = columns.find((col: any) => col.key === 'action' || col.key === 'operations');
-        const displayCols = columns.filter((col: any) => col.key !== 'action' && col.key !== 'operations' && col.title);
+        const actionCol = colsList.find((col: any) => col.key === 'action' || col.key === 'operations');
+        const displayCols = colsList.filter((col: any) => col.key !== 'action' && col.key !== 'operations' && col.title);
 
         const titleCol = displayCols.find((col: any) => col.dataIndex === 'name' || col.dataIndex === 'title' || col.dataIndex === 'content') || displayCols[0];
         const otherCols = displayCols.filter((col: any) => col !== titleCol);
 
         const handleCardClick = () => {
           if (onRow) {
-            const rowProps = onRow(record);
+            const rowProps = onRow(record, index);
             if (rowProps && rowProps.onClick) {
               rowProps.onClick();
             }
@@ -107,6 +135,13 @@ function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination
         const renderTitle = () => {
           const val = titleCol?.dataIndex ? record[titleCol.dataIndex] : undefined;
           return titleCol?.render ? titleCol.render(val, record, index) : val || '';
+        };
+
+        const getRecordKey = () => {
+          if (typeof rowKey === 'function') {
+            return rowKey(record, index);
+          }
+          return record[rowKey as string] || index + 1;
         };
 
         return (
@@ -123,7 +158,7 @@ function Table({ dataSource = [], columns = [], rowKey = 'id', onRow, pagination
                   {renderTitle()}
                 </span>
                 <span className="text-xs text-gray-400 font-mono">
-                  #{record[rowKey] || index + 1}
+                  #{getRecordKey()}
                 </span>
               </div>
 
