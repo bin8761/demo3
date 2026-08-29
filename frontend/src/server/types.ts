@@ -23,7 +23,7 @@ export interface Staff {
   name: string;
   phone: string;
   email: string;
-  role: 'Giám đốc' | 'Trưởng phòng' | 'Luật sư' | 'Nhân viên';
+  role: 'Giám đốc' | 'Phó Giám đốc' | 'Trưởng phòng' | 'Luật sư' | 'Nhân viên';
   departmentId: string;
   joinDate: string;
   status: 'Đang làm việc' | 'Đã nghỉ việc';
@@ -33,12 +33,15 @@ export interface ServiceProfile {
   id: string; // e.g. HS-2026-001
   title: string;
   customerId: string;
-  serviceType: 'Đất đai' | 'Sổ đỏ' | 'Khai sinh' | 'Hộ tịch' | 'Giấy phép' | 'Khác';
+  serviceType: 'Đất đai' | 'Sổ đỏ' | 'Khai sinh' | 'Hộ tịch' | 'Giấy phép' | 'Doanh nghiệp' | 'Khác';
   managerId: string; // staffId
   receiveDate: string;
   deadline: string;
   price: number;
   status: 'Mới tiếp nhận' | 'Đang xử lý' | 'Chờ bổ sung' | 'Đang làm việc với cơ quan' | 'Đã có kết quả' | 'Hoàn thành' | 'Đóng hồ sơ';
+  contractNumber?: string;
+  notes?: string;
+  endDate?: string;
   createdAt: string;
 }
 
@@ -53,6 +56,10 @@ export interface Lawsuit {
   caseNumber: string; // Số vụ án
   receiveDate: string;
   status: 'Mới tiếp nhận' | 'Đang thụ lý' | 'Đang chuẩn bị xét xử' | 'Đang xét xử' | 'Đã có bản án' | 'Hoàn thành' | 'Đóng hồ sơ';
+  contractNumber?: string;
+  notes?: string;
+  endDate?: string;
+  advancePayment?: number;
   createdAt: string;
 }
 

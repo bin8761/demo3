@@ -43,27 +43,32 @@ export function initMockData() {
   const formatISO = (d: Date) => d.toISOString();
   const todayStr = formatISO(now).split('T')[0];
 
-  // 1. Phòng ban
+  // 1. Phòng ban (theo cơ cấu tổ chức thực tế)
   db.departments = [
-    { id: 'hanh-chinh', name: 'Phòng Hành chính', managerId: 'NV-001', description: 'Tiếp nhận khách hàng, hành chính nhân sự, kế toán thu chi', status: 'active' },
-    { id: 'dich-vu', name: 'Phòng Dịch vụ', managerId: 'NV-002', description: 'Xử lý các hồ sơ dịch vụ đất đai, hộ tịch, giấy phép...', status: 'active' },
-    { id: 'to-tung', name: 'Phòng Tố tụng', managerId: 'NV-003', description: 'Tham gia tố tụng vụ án dân sự, hình sự, tranh chấp...', status: 'active' }
+    { id: 'van-phong', name: 'Văn phòng & Hành chính', managerId: 'NV-001', description: 'Nhân sự, cơ cấu tổ chức, công văn, kỷ luật lao động, khen thưởng', status: 'active' },
+    { id: 'dich-vu', name: 'Phòng Hồ sơ Dịch vụ', managerId: 'NV-002', description: 'Xử lý các hồ sơ dịch vụ đất đai, hộ tịch, giấy phép...', status: 'active' },
+    { id: 'to-tung', name: 'Phòng Hồ sơ Tố tụng', managerId: 'NV-003', description: 'Tham gia tố tụng vụ án dân sự, hình sự, tranh chấp...', status: 'active' },
+    { id: 'doanh-nghiep', name: 'Phòng Hồ sơ Doanh nghiệp', managerId: 'NV-007', description: 'Thành lập, thay đổi đăng ký kinh doanh, giải thể doanh nghiệp...', status: 'active' },
   ];
 
   // 2. Nhân sự
   db.staff = [
-    { id: 'NV-001', name: 'Nguyễn Văn Trưởng', phone: '0901234567', email: 'truong.nv@lawfirm.com', role: 'Giám đốc', departmentId: 'hanh-chinh', joinDate: '2020-01-01', status: 'Đang làm việc' },
+    { id: 'NV-001', name: 'Nguyễn Văn Trưởng', phone: '0901234567', email: 'truong.nv@lawfirm.com', role: 'Giám đốc', departmentId: 'van-phong', joinDate: '2020-01-01', status: 'Đang làm việc' },
+    { id: 'NV-008', name: 'Trần Thị Phó', phone: '0901234999', email: 'pho.tt@lawfirm.com', role: 'Phó Giám đốc', departmentId: 'van-phong', joinDate: '2020-03-01', status: 'Đang làm việc' },
     { id: 'NV-002', name: 'Lê Thị Dịch', phone: '0902345678', email: 'dich.lt@lawfirm.com', role: 'Trưởng phòng', departmentId: 'dich-vu', joinDate: '2021-03-15', status: 'Đang làm việc' },
-    { id: 'NV-003', name: 'Trần Văn Luật', phone: '0903456789', email: 'luat.tv@lawfirm.com', role: 'Luật sư', departmentId: 'to-tung', joinDate: '2021-06-01', status: 'Đang làm việc' },
-    { id: 'NV-004', name: 'Phạm Kế Toán', phone: '0904567890', email: 'toan.p@lawfirm.com', role: 'Nhân viên', departmentId: 'hanh-chinh', joinDate: '2022-09-01', status: 'Đang làm việc' },
+    { id: 'NV-003', name: 'Trần Văn Luật', phone: '0903456789', email: 'luat.tv@lawfirm.com', role: 'Trưởng phòng', departmentId: 'to-tung', joinDate: '2021-06-01', status: 'Đang làm việc' },
+    { id: 'NV-004', name: 'Phạm Kế Toán', phone: '0904567890', email: 'toan.p@lawfirm.com', role: 'Nhân viên', departmentId: 'van-phong', joinDate: '2022-09-01', status: 'Đang làm việc' },
     { id: 'NV-005', name: 'Hoàng Văn Sự', phone: '0905678901', email: 'su.hv@lawfirm.com', role: 'Nhân viên', departmentId: 'dich-vu', joinDate: '2023-01-10', status: 'Đang làm việc' },
-    { id: 'NV-006', name: 'Vũ Hỗ Trợ', phone: '0906789012', email: 'tro.v@lawfirm.com', role: 'Nhân viên', departmentId: 'to-tung', joinDate: '2023-05-20', status: 'Đang làm việc' }
+    { id: 'NV-006', name: 'Vũ Hỗ Trợ', phone: '0906789012', email: 'tro.v@lawfirm.com', role: 'Luật sư', departmentId: 'to-tung', joinDate: '2023-05-20', status: 'Đang làm việc' },
+    { id: 'NV-007', name: 'Đặng Doanh Nghiệp', phone: '0907890123', email: 'dn.d@lawfirm.com', role: 'Trưởng phòng', departmentId: 'doanh-nghiep', joinDate: '2022-01-15', status: 'Đang làm việc' },
+    { id: 'NV-009', name: 'Lý Văn DN', phone: '0908901234', email: 'dn.lv@lawfirm.com', role: 'Nhân viên', departmentId: 'doanh-nghiep', joinDate: '2023-06-01', status: 'Đang làm việc' },
   ];
 
   // 3. Khách hàng
   db.customers = [
     { id: 'KH-001', name: 'Nguyễn Văn A', phone: '0987654321', email: 'nva@gmail.com', cccd: '012345678912', address: '123 Đường Láng, Đống Đa, Hà Nội', type: 'Cá nhân', notes: 'Khách làm thủ tục đất đai', createdAt: todayStr },
-    { id: 'KH-002', name: 'Trần Văn B', phone: '0912345678', email: 'tvb@gmail.com', cccd: '098765432109', address: '456 Trần Hưng Đạo, Quận 1, TP. HCM', type: 'Cá nhân', notes: 'Khách tranh chấp thương mại tố tụng', createdAt: todayStr }
+    { id: 'KH-002', name: 'Trần Văn B', phone: '0912345678', email: 'tvb@gmail.com', cccd: '098765432109', address: '456 Trần Hưng Đạo, Quận 1, TP. HCM', type: 'Cá nhân', notes: 'Khách tranh chấp thương mại tố tụng', createdAt: todayStr },
+    { id: 'KH-003', name: 'Công ty TNHH ABC', phone: '0281234567', email: 'info@abc.com.vn', cccd: '0301234567', address: '789 Nguyễn Huệ, Quận 1, TP. HCM', type: 'Doanh nghiệp', notes: 'Khách hàng doanh nghiệp - đăng ký kinh doanh', createdAt: todayStr },
   ];
 
   // 4. Hồ sơ dịch vụ (HS-2026-001)
@@ -80,6 +85,24 @@ export function initMockData() {
       deadline: deadlineProfile.toISOString().split('T')[0],
       price: 15000000,
       status: 'Đang xử lý',
+      contractNumber: 'HDDV-01/2026',
+      notes: 'Cần bổ sung bản đo đạc thửa đất mới nhất',
+      endDate: '',
+      createdAt: todayStr
+    },
+    {
+      id: 'HS-2026-002',
+      title: 'Hồ sơ thành lập Công ty TNHH ABC',
+      customerId: 'KH-003',
+      serviceType: 'Doanh nghiệp',
+      managerId: 'NV-009',
+      receiveDate: todayStr,
+      deadline: deadlineProfile.toISOString().split('T')[0],
+      price: 8000000,
+      status: 'Mới tiếp nhận',
+      contractNumber: 'HDDV-03/2026',
+      notes: 'Khách cần gấp để ký hợp đồng kinh doanh',
+      endDate: '',
       createdAt: todayStr
     }
   ];
@@ -99,6 +122,10 @@ export function initMockData() {
       caseNumber: '102/2026/DS-ST',
       receiveDate: todayStr,
       status: 'Đang chuẩn bị xét xử',
+      contractNumber: 'HDTT-02/2026',
+      notes: 'Cần chuẩn bị bản luận cứ trước ngày xét xử. LS Luật đang xử lý.',
+      endDate: '',
+      advancePayment: 10000000,
       createdAt: todayStr
     }
   ];

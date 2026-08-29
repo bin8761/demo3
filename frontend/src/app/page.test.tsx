@@ -51,7 +51,7 @@ vi.mock('../api', () => ({
   },
   hrApi: {
     getStaff: vi.fn().mockResolvedValue([
-      { id: 'NV-001', name: 'Nguyễn Văn Trưởng', role: 'Giám đốc', departmentId: 'hanh-chinh' }
+      { id: 'NV-001', name: 'Nguyễn Văn Trưởng', role: 'Giám đốc', departmentId: 'van-phong' }
     ]),
     getDepartments: vi.fn().mockResolvedValue([]),
     getTimekeeping: vi.fn().mockResolvedValue([]),

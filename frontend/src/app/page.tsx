@@ -31,7 +31,8 @@ import {
   Calendar,
   Tooltip,
   TimePicker,
-  Upload
+  Upload,
+  Alert
 } from 'antd';
 import type { TableProps as AntdTableProps } from 'antd';
 import {
@@ -54,7 +55,8 @@ import {
   SendOutlined,
   PaperClipOutlined,
   ReloadOutlined,
-  MenuOutlined
+  MenuOutlined,
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -502,8 +504,10 @@ export default function App() {
     id: 'NV-001',
     name: 'Nguyễn Văn Trưởng',
     role: 'Giám đốc',
-    departmentId: 'hanh-chinh'
+    departmentId: 'van-phong'
   });
+  const [selectedDept, setSelectedDept] = useState<string | null>(null);
+  const [deptSubTab, setDeptSubTab] = useState('nhan-su');
 
   // State dữ liệu
   const [stats, setStats] = useState<any>({});
@@ -1275,30 +1279,265 @@ export default function App() {
               {/* ---------------------------------------------------- */}
               {/* TAB 3: DEPARTMENTS */}
               {/* ---------------------------------------------------- */}
-              {currentMenu === 'departments' && (
-                <div className="space-y-6">
-                  <Row gutter={[16, 16]}>
-                    {departments.map((dept: any) => {
-                      const mgr = staff.find(s => s.id === dept.managerId);
-                      return (
-                        <Col xs={24} md={8} key={dept.id}>
-                          <Card
-                            title={dept.name}
-                            className="glass-panel hover:shadow-lg transition-shadow duration-200"
-                            actions={[
-                              <Button type="link" onClick={() => handleOpenDetail('department', dept.id)} key="detail">Chi tiết phòng</Button>
-                            ]}
-                          >
-                            <p><Text strong>Trưởng phòng:</Text> {mgr ? mgr.name : 'Chưa gán'}</p>
-                            <p><Text type="secondary">{dept.description}</Text></p>
-                            <Tag color="green">Đang hoạt động</Tag>
-                          </Card>
-                        </Col>
-                      );
-                    })}
-                  </Row>
-                </div>
-              )}
+              {currentMenu === 'departments' && (() => {
+                const deptStaffCount = (deptId: string) => staff.filter(s => s.departmentId === deptId).length;
+                const selectedDeptData = departments.find(d => d.id === selectedDept);
+
+                if (!selectedDept) {
+                  // Trang tổng quan 4 phòng ban
+                  return (
+                    <div className="space-y-6">
+                      <Card className="glass-panel" title="Cơ cấu Tổ chức Công ty Luật" extra={<Tag color="blue">4 Phòng ban</Tag>}>
+                        <div style={{ textAlign: 'center', marginBottom: 24, padding: '16px 0', background: 'linear-gradient(135deg, rgba(22,119,255,0.06), rgba(114,46,209,0.06))', borderRadius: 12 }}>
+                          <Text strong style={{ fontSize: 14, color: '#888' }}>SƠ ĐỒ CƠ CẤU TỔ CHỨC</Text>
+                          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                            <Tag color="gold" style={{ fontSize: 16, padding: '6px 20px' }}>🏛️ Giám đốc: {staff.find(s => s.role === 'Giám đốc')?.name || '—'}</Tag>
+                            <div style={{ width: 2, height: 16, background: '#ddd' }} />
+                            <Tag color="purple" style={{ fontSize: 14, padding: '4px 16px' }}>👔 Phó GĐ: {staff.find(s => s.role === 'Phó Giám đốc')?.name || '—'}</Tag>
+                            <div style={{ width: 2, height: 16, background: '#ddd' }} />
+                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                              {departments.map(d => (
+                                <Tag key={d.id} color="blue" style={{ padding: '4px 12px' }}>📁 {d.name}</Tag>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Row gutter={[16, 16]}>
+                        {departments.map((dept: any) => {
+                          const mgr = staff.find(s => s.id === dept.managerId);
+                          const memberCount = deptStaffCount(dept.id);
+                          const iconMap: Record<string, string> = { 'van-phong': '🏢', 'dich-vu': '📋', 'to-tung': '⚖️', 'doanh-nghiep': '🏭' };
+                          return (
+                            <Col xs={24} sm={12} md={6} key={dept.id}>
+                              <Card
+                                hoverable
+                                className="glass-panel"
+                                onClick={() => { setSelectedDept(dept.id); setDeptSubTab(dept.id === 'van-phong' ? 'nhan-su' : 'ho-so'); }}
+                                style={{ textAlign: 'center', cursor: 'pointer' }}
+                              >
+                                <div style={{ fontSize: 36, marginBottom: 8 }}>{iconMap[dept.id] || '📁'}</div>
+                                <Title level={5} style={{ margin: 0 }}>{dept.name}</Title>
+                                <Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{dept.description}</Text>
+                                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 8 }}>
+                                  <Tag color="green">{memberCount} nhân viên</Tag>
+                                  <Tag color="blue">Đang hoạt động</Tag>
+                                </div>
+                                <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+                                  Trưởng phòng: <Text strong>{mgr?.name || 'Chưa gán'}</Text>
+                                </Text>
+                              </Card>
+                            </Col>
+                          );
+                        })}
+                      </Row>
+                    </div>
+                  );
+                }
+
+                // Chi tiết một phòng ban cụ thể
+                const deptStaff = staff.filter(s => s.departmentId === selectedDept);
+                const deptMgr = staff.find(s => s.id === selectedDeptData?.managerId);
+
+                return (
+                  <div className="space-y-4">
+                    <Button icon={<ArrowLeftOutlined />} onClick={() => setSelectedDept(null)}>← Quay lại danh sách phòng ban</Button>
+                    <Card className="glass-panel" title={<span style={{ fontSize: 18 }}>{selectedDeptData?.name}</span>} extra={<Tag color="green">Trưởng phòng: {deptMgr?.name || '—'}</Tag>}>
+
+                      {/* ===== Phòng Văn phòng & Hành chính ===== */}
+                      {selectedDept === 'van-phong' && (
+                        <Tabs activeKey={deptSubTab} onChange={setDeptSubTab} items={[
+                          {
+                            key: 'nhan-su',
+                            label: '👥 Nhân sự',
+                            children: (
+                              <Table
+                                dataSource={deptStaff}
+                                rowKey="id"
+                                columns={[
+                                  { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                  { title: 'Họ tên', dataIndex: 'name', key: 'name' },
+                                  { title: 'Chức vụ', dataIndex: 'role', key: 'role', render: (r) => <Tag color="blue">{r}</Tag> },
+                                  { title: 'Phòng ban', key: 'dept', render: () => selectedDeptData?.name },
+                                  { title: 'Ngày vào làm', dataIndex: 'joinDate', key: 'joinDate' },
+                                  { title: 'SĐT', dataIndex: 'phone', key: 'phone' },
+                                  { title: 'Email', dataIndex: 'email', key: 'email' },
+                                  { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Đang làm việc' ? 'green' : 'red'}>{s}</Tag> },
+                                ]}
+                              />
+                            )
+                          },
+                          {
+                            key: 'co-cau',
+                            label: '🏛️ Cơ cấu tổ chức',
+                            children: (
+                              <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                                  <Card size="small" style={{ minWidth: 250, border: '2px solid #faad14' }}>
+                                    <Text strong>🏛️ Giám đốc</Text><br/>
+                                    <Text>{staff.find(s => s.role === 'Giám đốc')?.name || '—'}</Text>
+                                  </Card>
+                                  <div style={{ width: 2, height: 20, background: '#d9d9d9' }} />
+                                  <Card size="small" style={{ minWidth: 250, border: '2px solid #722ed1' }}>
+                                    <Text strong>👔 Phó Giám đốc</Text><br/>
+                                    <Text>{staff.find(s => s.role === 'Phó Giám đốc')?.name || '—'}</Text>
+                                  </Card>
+                                  <div style={{ width: 2, height: 20, background: '#d9d9d9' }} />
+                                  <Row gutter={[12, 12]} justify="center">
+                                    {departments.map(d => {
+                                      const tp = staff.find(s => s.id === d.managerId);
+                                      const count = staff.filter(s => s.departmentId === d.id).length;
+                                      return (
+                                        <Col key={d.id}>
+                                          <Card size="small" style={{ minWidth: 180, border: '1px solid #1677ff', textAlign: 'center' }}>
+                                            <Text strong style={{ fontSize: 12 }}>📁 {d.name}</Text><br/>
+                                            <Text type="secondary" style={{ fontSize: 11 }}>TP: {tp?.name || '—'}</Text><br/>
+                                            <Tag color="green" style={{ marginTop: 4 }}>{count} người</Tag>
+                                          </Card>
+                                        </Col>
+                                      );
+                                    })}
+                                  </Row>
+                                </div>
+                              </div>
+                            )
+                          },
+                          {
+                            key: 'cong-van',
+                            label: '📨 Công văn đến/đi',
+                            children: (
+                              <div>
+                                <Alert message="Tính năng Quản lý Công văn đang được phát triển" description="Cho phép quản lý công văn đến và công văn đi của công ty." type="info" showIcon />
+                                <Table
+                                  dataSource={[]}
+                                  rowKey="id"
+                                  locale={{ emptyText: 'Chưa có công văn nào' }}
+                                  columns={[
+                                    { title: 'STT', key: 'stt', width: 60 },
+                                    { title: 'Số công văn', key: 'number' },
+                                    { title: 'Loại', key: 'type' },
+                                    { title: 'Nội dung', key: 'content' },
+                                    { title: 'Ngày', key: 'date' },
+                                    { title: 'Người xử lý', key: 'handler' },
+                                  ]}
+                                />
+                              </div>
+                            )
+                          },
+                          {
+                            key: 'ky-luat',
+                            label: '⚠️ Kỷ luật',
+                            children: (
+                              <div>
+                                <Alert message="Tính năng Quản lý Kỷ luật đang được phát triển" description="Ghi nhận quyết định kỷ luật lao động." type="info" showIcon />
+                                <Table
+                                  dataSource={[]}
+                                  rowKey="id"
+                                  locale={{ emptyText: 'Chưa có hồ sơ kỷ luật' }}
+                                  columns={[
+                                    { title: 'STT', key: 'stt', width: 60 },
+                                    { title: 'Nhân viên', key: 'staff' },
+                                    { title: 'Hình thức kỷ luật', key: 'type' },
+                                    { title: 'Ngày quyết định', key: 'date' },
+                                    { title: 'Ghi chú', key: 'notes' },
+                                  ]}
+                                />
+                              </div>
+                            )
+                          },
+                          {
+                            key: 'khen-thuong',
+                            label: '🏆 Khen thưởng',
+                            children: (
+                              <div>
+                                <Alert message="Tính năng Quản lý Khen thưởng đang được phát triển" description="Ghi nhận khen thưởng cho nhân viên." type="info" showIcon />
+                                <Table
+                                  dataSource={[]}
+                                  rowKey="id"
+                                  locale={{ emptyText: 'Chưa có hồ sơ khen thưởng' }}
+                                  columns={[
+                                    { title: 'STT', key: 'stt', width: 60 },
+                                    { title: 'Nhân viên', key: 'staff' },
+                                    { title: 'Hình thức khen thưởng', key: 'type' },
+                                    { title: 'Ngày', key: 'date' },
+                                    { title: 'Ghi chú', key: 'notes' },
+                                  ]}
+                                />
+                              </div>
+                            )
+                          },
+                        ]} />
+                      )}
+
+                      {/* ===== Phòng Hồ sơ Dịch vụ ===== */}
+                      {selectedDept === 'dich-vu' && (
+                        <Table
+                          dataSource={profiles.filter(p => p.serviceType !== 'Doanh nghiệp')}
+                          rowKey="id"
+                          onRow={(record) => ({ onClick: () => handleOpenDetail('profile', record.id), style: { cursor: 'pointer' } })}
+                          columns={[
+                            { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                            { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                            { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
+                            { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Tình trạng', dataIndex: 'status', key: 'status', render: (s) => {
+                              let color = 'blue';
+                              if (s === 'Hoàn thành' || s === 'Đóng hồ sơ') color = 'green';
+                              if (s === 'Chờ bổ sung') color = 'orange';
+                              return <Tag color={color}>{s}</Tag>;
+                            }},
+                            { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                            { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                          ]}
+                        />
+                      )}
+
+                      {/* ===== Phòng Hồ sơ Tố tụng ===== */}
+                      {selectedDept === 'to-tung' && (
+                        <Table
+                          dataSource={lawsuits}
+                          rowKey="id"
+                          onRow={(record) => ({ onClick: () => handleOpenDetail('lawsuit', record.id), style: { cursor: 'pointer' } })}
+                          columns={[
+                            { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                            { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                            { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
+                            { title: 'Tên vụ án', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Tình trạng', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Hoàn thành' || s === 'Đóng hồ sơ' ? 'green' : 'blue'}>{s}</Tag> },
+                            { title: 'Lưu ý hồ sơ', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                            { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
+                            { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                          ]}
+                        />
+                      )}
+
+                      {/* ===== Phòng Hồ sơ Doanh nghiệp ===== */}
+                      {selectedDept === 'doanh-nghiep' && (
+                        <Table
+                          dataSource={profiles.filter(p => p.serviceType === 'Doanh nghiệp')}
+                          rowKey="id"
+                          onRow={(record) => ({ onClick: () => handleOpenDetail('profile', record.id), style: { cursor: 'pointer' } })}
+                          columns={[
+                            { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                            { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                            { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
+                            { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Tình trạng', dataIndex: 'status', key: 'status', render: (s) => {
+                              let color = 'blue';
+                              if (s === 'Hoàn thành' || s === 'Đóng hồ sơ') color = 'green';
+                              if (s === 'Chờ bổ sung') color = 'orange';
+                              return <Tag color={color}>{s}</Tag>;
+                            }},
+                            { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                            { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                          ]}
+                        />
+                      )}
+                    </Card>
+                  </div>
+                );
+              })()}
 
               {/* ---------------------------------------------------- */}
               {/* TAB 4: STAFF */}
@@ -1348,7 +1587,7 @@ export default function App() {
               {/* ---------------------------------------------------- */}
               {currentMenu === 'profiles' && (
                 <Card
-                  title="Hồ sơ dịch vụ (Phòng Dịch vụ)"
+                  title="Hồ sơ dịch vụ (Phòng Hồ sơ Dịch vụ)"
                   extra={
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'profile' })}>
                       Tạo hồ sơ mới
@@ -1364,24 +1603,25 @@ export default function App() {
                       style: { cursor: 'pointer' }
                     })}
                     columns={[
-                      { title: 'Mã hồ sơ', dataIndex: 'id', key: 'id' },
-                      { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                      { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                       { title: 'Loại dịch vụ', dataIndex: 'serviceType', key: 'serviceType' },
                       { title: 'Phụ trách', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
-                      { title: 'Hạn xử lý', dataIndex: 'deadline', key: 'deadline' },
-                      { title: 'Phí dịch vụ', dataIndex: 'price', key: 'price', render: (v) => `${v.toLocaleString()}đ` },
                       {
-                        title: 'Trạng thái',
+                        title: 'Tình trạng',
                         dataIndex: 'status',
                         key: 'status',
                         render: (s) => {
                           let color = 'blue';
-                          if (s === 'Hoàn thành') color = 'green';
+                          if (s === 'Hoàn thành' || s === 'Đóng hồ sơ') color = 'green';
                           if (s === 'Chờ bổ sung') color = 'orange';
                           return <Tag color={color}>{s}</Tag>;
                         }
                       },
+                      { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                      { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                       {
                         title: 'Thao tác',
                         key: 'action',
@@ -1408,7 +1648,7 @@ export default function App() {
               {/* ---------------------------------------------------- */}
               {currentMenu === 'lawsuits' && (
                 <Card
-                  title="Vụ án / Tố tụng (Phòng Tố tụng)"
+                  title="Vụ án / Tố tụng (Phòng Hồ sơ Tố tụng)"
                   extra={
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'lawsuit' })}>
                       Tạo vụ án mới
@@ -1424,18 +1664,20 @@ export default function App() {
                       style: { cursor: 'pointer' }
                     })}
                     columns={[
-                      { title: 'Mã vụ án', dataIndex: 'id', key: 'id' },
-                      { title: 'Tên vụ án', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
-                      { title: 'Luật sư phụ trách', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
-                      { title: 'Cơ quan giải quyết', dataIndex: 'court', key: 'court' },
-                      { title: 'Số vụ án', dataIndex: 'caseNumber', key: 'caseNumber' },
+                      { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
+                      { title: 'Tên vụ án', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'LS phụ trách', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
                       {
-                        title: 'Trạng thái',
+                        title: 'Tình trạng',
                         dataIndex: 'status',
                         key: 'status',
-                        render: (s) => <Tag color={s === 'Hoàn thành' ? 'green' : 'blue'}>{s}</Tag>
+                        render: (s) => <Tag color={s === 'Hoàn thành' || s === 'Đóng hồ sơ' ? 'green' : 'blue'}>{s}</Tag>
                       },
+                      { title: 'Lưu ý hồ sơ', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                      { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
+                      { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                       {
                         title: 'Thao tác',
                         key: 'action',
@@ -2939,11 +3181,14 @@ export default function App() {
                 <Form.Item name="customerId" label="Khách hàng" rules={[{ required: true, message: 'Chọn khách hàng' }]}>
                   <Select options={customers.map(c => ({ value: c.id, label: c.name }))} />
                 </Form.Item>
+                <Form.Item name="contractNumber" label="Số hợp đồng">
+                  <Input placeholder="HDDV-01/2026" />
+                </Form.Item>
                 <Form.Item name="serviceType" label="Loại dịch vụ" rules={[{ required: true }]}>
-                  <Select options={[{ value: 'Đất đai', label: 'Đất đai' }, { value: 'Sổ đỏ', label: 'Sổ đỏ' }, { value: 'Khai sinh', label: 'Khai sinh' }, { value: 'Giấy phép', label: 'Giấy phép' }]} />
+                  <Select options={[{ value: 'Đất đai', label: 'Đất đai' }, { value: 'Sổ đỏ', label: 'Sổ đỏ' }, { value: 'Khai sinh', label: 'Khai sinh' }, { value: 'Hộ tịch', label: 'Hộ tịch' }, { value: 'Giấy phép', label: 'Giấy phép' }, { value: 'Doanh nghiệp', label: 'Doanh nghiệp' }, { value: 'Khác', label: 'Khác' }]} />
                 </Form.Item>
                 <Form.Item name="managerId" label="Người phụ trách" rules={[{ required: true }]}>
-                  <Select options={staff.filter(s => s.departmentId === 'dich-vu').map(s => ({ value: s.id, label: s.name }))} />
+                  <Select options={staff.map(s => ({ value: s.id, label: `${s.name} (${departments.find(d => d.id === s.departmentId)?.name || ''})` }))} />
                 </Form.Item>
                 <Form.Item name="deadline" label="Hạn xử lý" rules={[{ required: true }]}>
                   <DatePicker className="w-full" />
@@ -2951,8 +3196,11 @@ export default function App() {
                 <Form.Item name="price" label="Giá trị dịch vụ (VND)" rules={[{ required: true }]}>
                   <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
                 </Form.Item>
-                <Form.Item name="status" label="Trạng thái ban đầu" initialValue="Mới tiếp nhận">
+                <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
                   <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang xử lý', label: 'Đang xử lý' }]} />
+                </Form.Item>
+                <Form.Item name="notes" label="Lưu ý">
+                  <Input.TextArea rows={2} placeholder="Ghi chú quan trọng cho quản lý..." />
                 </Form.Item>
               </>
             )}
@@ -2965,8 +3213,11 @@ export default function App() {
                 <Form.Item name="customerId" label="Khách hàng" rules={[{ required: true }]}>
                   <Select options={customers.map(c => ({ value: c.id, label: c.name }))} />
                 </Form.Item>
+                <Form.Item name="contractNumber" label="Số hợp đồng">
+                  <Input placeholder="HDTT-02/2026" />
+                </Form.Item>
                 <Form.Item name="lawsuitType" label="Loại vụ án" rules={[{ required: true }]}>
-                  <Select options={[{ value: 'Dân sự', label: 'Dân sự' }, { value: 'Hình sự', label: 'Hình sự' }, { value: 'Kinh doanh thương mại', label: 'Kinh doanh thương mại' }]} />
+                  <Select options={[{ value: 'Dân sự', label: 'Dân sự' }, { value: 'Hình sự', label: 'Hình sự' }, { value: 'Hôn nhân gia đình', label: 'Hôn nhân gia đình' }, { value: 'Đất đai', label: 'Đất đai' }, { value: 'Lao động', label: 'Lao động' }, { value: 'Kinh doanh thương mại', label: 'Kinh doanh thương mại' }, { value: 'Khác', label: 'Khác' }]} />
                 </Form.Item>
                 <Form.Item name="lawyerId" label="Luật sư phụ trách" rules={[{ required: true }]}>
                   <Select options={staff.filter(s => s.role === 'Luật sư' || s.departmentId === 'to-tung').map(s => ({ value: s.id, label: s.name }))} />
@@ -2977,11 +3228,14 @@ export default function App() {
                 <Form.Item name="caseNumber" label="Số hiệu vụ án">
                   <Input placeholder="102/2026/DS-ST" />
                 </Form.Item>
-                <Form.Item name="price" label="Trị giá hợp đồng tố tụng" initialValue={30000000}>
-                  <InputNumber className="w-full" min={0} />
+                <Form.Item name="advancePayment" label="Tạm ứng (VND)">
+                  <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
                 </Form.Item>
-                <Form.Item name="status" label="Trạng thái ban đầu" initialValue="Mới tiếp nhận">
+                <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
                   <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang thụ lý', label: 'Đang thụ lý' }]} />
+                </Form.Item>
+                <Form.Item name="notes" label="Lưu ý hồ sơ">
+                  <Input.TextArea rows={2} placeholder="Ghi chú lưu ý về hồ sơ, nhân viên đang xử lý..." />
                 </Form.Item>
               </>
             )}
