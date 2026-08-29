@@ -38,7 +38,7 @@ export interface ServiceProfile {
   receiveDate: string;
   deadline: string;
   price: number;
-  status: 'Mới tiếp nhận' | 'Đang xử lý' | 'Chờ bổ sung' | 'Đang làm việc với cơ quan' | 'Đã có kết quả' | 'Hoàn thành' | 'Đóng hồ sơ';
+  status: 'Mới tiếp nhận' | 'Đang giải quyết' | 'Đang xử lý' | 'Chờ bổ sung' | 'Đang làm việc với cơ quan' | 'Đã có kết quả' | 'Hoàn thành' | 'Đóng hồ sơ';
   contractNumber?: string;
   notes?: string;
   endDate?: string;
@@ -55,7 +55,7 @@ export interface Lawsuit {
   court: string; // Cơ quan giải quyết (Tòa án...)
   caseNumber: string; // Số vụ án
   receiveDate: string;
-  status: 'Mới tiếp nhận' | 'Đang thụ lý' | 'Đang chuẩn bị xét xử' | 'Đang xét xử' | 'Đã có bản án' | 'Hoàn thành' | 'Đóng hồ sơ';
+  status: 'Mới tiếp nhận' | 'Đang giải quyết' | 'Đang thụ lý' | 'Đang chuẩn bị xét xử' | 'Đang xét xử' | 'Đã có bản án' | 'Hoàn thành' | 'Đóng hồ sơ';
   contractNumber?: string;
   notes?: string;
   endDate?: string;

@@ -532,6 +532,26 @@ export default function App() {
   const [timekeeping, setTimekeeping] = useState<any[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
 
+  // State cho Công văn, Kỷ luật, Khen thưởng
+  const [dispatches, setDispatches] = useState<any[]>([
+    { id: 'CV-001', number: '102/2026/CV-STP', type: 'Công văn đi', content: 'Gửi Sở Tư Pháp đề nghị xác minh hồ sơ hộ tịch', date: '2026-08-25', handler: 'Nguyễn Văn Trưởng', unit: 'Sở Tư Pháp' },
+    { id: 'CV-002', number: '45/2026/CV-TA', type: 'Công văn đến', content: 'Thông báo thụ lý đơn khởi kiện từ Tòa án Quận 1', date: '2026-08-28', handler: 'Trần Văn Luật', unit: 'TAND Quận 1' },
+  ]);
+  const [disciplines, setDisciplines] = useState<any[]>([
+    { id: 'KL-001', staffName: 'Hoàng Văn Sự', type: 'Nhắc nhở', reason: 'Vi phạm quy định giờ giấc làm việc', date: '2026-08-20', notes: 'Đã rút kinh nghiệm' },
+  ]);
+  const [rewards, setRewards] = useState<any[]>([
+    { id: 'KT-001', staffName: 'Lê Thị Dịch', type: 'Bằng khen', reason: 'Hoàn thành xuất sắc chỉ tiêu hồ sơ dịch vụ tháng 8', bonus: 2000000, date: '2026-08-15', notes: 'Tuyên dương toàn đơn vị' },
+  ]);
+
+  const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
+  const [disciplineModalOpen, setDisciplineModalOpen] = useState(false);
+  const [rewardModalOpen, setRewardModalOpen] = useState(false);
+
+  const [dispatchForm] = Form.useForm();
+  const [disciplineForm] = Form.useForm();
+  const [rewardForm] = Form.useForm();
+
   // State chi tiết & modals
   const [detailModal, setDetailModal] = useState<{ visible: boolean; type: 'customer' | 'profile' | 'lawsuit' | 'department' | 'staff' | 'task' | 'schedule' | 'contract'; data: any }>({
     visible: false,
@@ -1360,7 +1380,7 @@ export default function App() {
                                   { title: 'Họ tên', dataIndex: 'name', key: 'name' },
                                   { title: 'Chức vụ', dataIndex: 'role', key: 'role', render: (r) => <Tag color="blue">{r}</Tag> },
                                   { title: 'Phòng ban', key: 'dept', render: () => selectedDeptData?.name },
-                                  { title: 'Ngày vào làm', dataIndex: 'joinDate', key: 'joinDate' },
+                                  { title: 'Thời gian vào làm', dataIndex: 'joinDate', key: 'joinDate' },
                                   { title: 'SĐT', dataIndex: 'phone', key: 'phone' },
                                   { title: 'Email', dataIndex: 'email', key: 'email' },
                                   { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Đang làm việc' ? 'green' : 'red'}>{s}</Tag> },
@@ -1408,18 +1428,23 @@ export default function App() {
                             label: '📨 Công văn đến/đi',
                             children: (
                               <div>
-                                <Alert message="Tính năng Quản lý Công văn đang được phát triển" description="Cho phép quản lý công văn đến và công văn đi của công ty." type="info" showIcon />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                  <Text type="secondary">Danh sách công văn vào và ra của công ty</Text>
+                                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setDispatchModalOpen(true)}>
+                                    Thêm công văn mới
+                                  </Button>
+                                </div>
                                 <Table
-                                  dataSource={[]}
+                                  dataSource={dispatches}
                                   rowKey="id"
-                                  locale={{ emptyText: 'Chưa có công văn nào' }}
                                   columns={[
-                                    { title: 'STT', key: 'stt', width: 60 },
-                                    { title: 'Số công văn', key: 'number' },
-                                    { title: 'Loại', key: 'type' },
-                                    { title: 'Nội dung', key: 'content' },
-                                    { title: 'Ngày', key: 'date' },
-                                    { title: 'Người xử lý', key: 'handler' },
+                                    { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                    { title: 'Số công văn', dataIndex: 'number', key: 'number', render: (v) => <Text strong>{v}</Text> },
+                                    { title: 'Loại', dataIndex: 'type', key: 'type', render: (t) => <Tag color={t === 'Công văn đến' ? 'blue' : 'purple'}>{t}</Tag> },
+                                    { title: 'Nội dung trích yếu', dataIndex: 'content', key: 'content' },
+                                    { title: 'Đơn vị liên quan', dataIndex: 'unit', key: 'unit', render: (v) => v || '—' },
+                                    { title: 'Ngày phát hành/nhận', dataIndex: 'date', key: 'date' },
+                                    { title: 'Người xử lý', dataIndex: 'handler', key: 'handler' },
                                   ]}
                                 />
                               </div>
@@ -1430,17 +1455,22 @@ export default function App() {
                             label: '⚠️ Kỷ luật',
                             children: (
                               <div>
-                                <Alert message="Tính năng Quản lý Kỷ luật đang được phát triển" description="Ghi nhận quyết định kỷ luật lao động." type="info" showIcon />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                  <Text type="secondary">Ghi nhận các quyết định kỷ luật lao động</Text>
+                                  <Button type="primary" danger icon={<PlusOutlined />} onClick={() => setDisciplineModalOpen(true)}>
+                                    Thêm quyết định kỷ luật
+                                  </Button>
+                                </div>
                                 <Table
-                                  dataSource={[]}
+                                  dataSource={disciplines}
                                   rowKey="id"
-                                  locale={{ emptyText: 'Chưa có hồ sơ kỷ luật' }}
                                   columns={[
-                                    { title: 'STT', key: 'stt', width: 60 },
-                                    { title: 'Nhân viên', key: 'staff' },
-                                    { title: 'Hình thức kỷ luật', key: 'type' },
-                                    { title: 'Ngày quyết định', key: 'date' },
-                                    { title: 'Ghi chú', key: 'notes' },
+                                    { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                    { title: 'Nhân viên bị kỷ luật', dataIndex: 'staffName', key: 'staffName', render: (v) => <Text strong>{v}</Text> },
+                                    { title: 'Hình thức kỷ luật', dataIndex: 'type', key: 'type', render: (t) => <Tag color="volcano">{t}</Tag> },
+                                    { title: 'Lý do kỷ luật', dataIndex: 'reason', key: 'reason' },
+                                    { title: 'Ngày quyết định', dataIndex: 'date', key: 'date' },
+                                    { title: 'Ghi chú', dataIndex: 'notes', key: 'notes', render: (v) => v || '—' },
                                   ]}
                                 />
                               </div>
@@ -1451,17 +1481,23 @@ export default function App() {
                             label: '🏆 Khen thưởng',
                             children: (
                               <div>
-                                <Alert message="Tính năng Quản lý Khen thưởng đang được phát triển" description="Ghi nhận khen thưởng cho nhân viên." type="info" showIcon />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                  <Text type="secondary">Ghi nhận thành tích và khen thưởng nhân sự</Text>
+                                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setRewardModalOpen(true)}>
+                                    Thêm khen thưởng
+                                  </Button>
+                                </div>
                                 <Table
-                                  dataSource={[]}
+                                  dataSource={rewards}
                                   rowKey="id"
-                                  locale={{ emptyText: 'Chưa có hồ sơ khen thưởng' }}
                                   columns={[
-                                    { title: 'STT', key: 'stt', width: 60 },
-                                    { title: 'Nhân viên', key: 'staff' },
-                                    { title: 'Hình thức khen thưởng', key: 'type' },
-                                    { title: 'Ngày', key: 'date' },
-                                    { title: 'Ghi chú', key: 'notes' },
+                                    { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                    { title: 'Nhân viên được khen thưởng', dataIndex: 'staffName', key: 'staffName', render: (v) => <Text strong>{v}</Text> },
+                                    { title: 'Hình thức', dataIndex: 'type', key: 'type', render: (t) => <Tag color="gold">{t}</Tag> },
+                                    { title: 'Lý do khen thưởng', dataIndex: 'reason', key: 'reason' },
+                                    { title: 'Tiền thưởng (VND)', dataIndex: 'bonus', key: 'bonus', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
+                                    { title: 'Ngày quyết định', dataIndex: 'date', key: 'date' },
+                                    { title: 'Ghi chú', dataIndex: 'notes', key: 'notes', render: (v) => v || '—' },
                                   ]}
                                 />
                               </div>
@@ -1564,6 +1600,7 @@ export default function App() {
                       { title: 'Họ tên', dataIndex: 'name', key: 'name', render: (text) => <a>{text}</a> },
                       { title: 'Chức vụ', dataIndex: 'role', key: 'role', render: (r) => <Tag color="blue">{r}</Tag> },
                       { title: 'Phòng ban', dataIndex: 'departmentId', key: 'departmentId', render: (id) => departments.find(d => d.id === id)?.name || id },
+                      { title: 'Thời gian vào làm', dataIndex: 'joinDate', key: 'joinDate' },
                       { title: 'Số điện thoại', dataIndex: 'phone', key: 'phone' },
                       { title: 'Email', dataIndex: 'email', key: 'email' },
                       { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Đang làm việc' ? 'green' : 'red'}>{s}</Tag> },
@@ -2661,7 +2698,7 @@ export default function App() {
                       </Col>
                       <Col xs={24} sm={12}>
                         <Form.Item name="status" label="Trạng thái">
-                          <Select options={[{ value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Chờ bổ sung', label: 'Chờ bổ sung' }, { value: 'Hoàn thành', label: 'Hoàn thành' }, { value: 'Đóng hồ sơ', label: 'Đóng hồ sơ' }]} />
+                          <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Chờ bổ sung', label: 'Chờ bổ sung' }, { value: 'Hoàn thành', label: 'Hoàn thành' }, { value: 'Đóng hồ sơ', label: 'Đóng hồ sơ' }]} />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -2772,7 +2809,7 @@ export default function App() {
                       </Col>
                       <Col xs={24} sm={12}>
                         <Form.Item name="status" label="Trạng thái">
-                          <Select options={[{ value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Tạm đình chỉ', label: 'Tạm đình chỉ' }, { value: 'Hoàn thành', label: 'Hoàn thành' }, { value: 'Đóng hồ sơ', label: 'Đóng hồ sơ' }]} />
+                          <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Đang thụ lý', label: 'Đang thụ lý' }, { value: 'Tạm đình chỉ', label: 'Tạm đình chỉ' }, { value: 'Hoàn thành', label: 'Hoàn thành' }, { value: 'Đóng hồ sơ', label: 'Đóng hồ sơ' }]} />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -3197,7 +3234,7 @@ export default function App() {
                   <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
                 </Form.Item>
                 <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
-                  <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang xử lý', label: 'Đang xử lý' }]} />
+                  <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Chờ bổ sung', label: 'Chờ bổ sung' }, { value: 'Hoàn thành', label: 'Hoàn thành' }]} />
                 </Form.Item>
                 <Form.Item name="notes" label="Lưu ý">
                   <Input.TextArea rows={2} placeholder="Ghi chú quan trọng cho quản lý..." />
@@ -3232,7 +3269,7 @@ export default function App() {
                   <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
                 </Form.Item>
                 <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
-                  <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang thụ lý', label: 'Đang thụ lý' }]} />
+                  <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang thụ lý', label: 'Đang thụ lý' }, { value: 'Đang chuẩn bị xét xử', label: 'Đang chuẩn bị xét xử' }, { value: 'Hoàn thành', label: 'Hoàn thành' }]} />
                 </Form.Item>
                 <Form.Item name="notes" label="Lưu ý hồ sơ">
                   <Input.TextArea rows={2} placeholder="Ghi chú lưu ý về hồ sơ, nhân viên đang xử lý..." />
@@ -3654,6 +3691,137 @@ export default function App() {
                 </Form.Item>
               </>
             )}
+          </Form>
+        </Modal>
+
+        {/* Modal tạo Công văn */}
+        <Modal
+          title="Thêm công văn đến/đi mới"
+          open={dispatchModalOpen}
+          onCancel={() => { setDispatchModalOpen(false); dispatchForm.resetFields(); }}
+          onOk={() => {
+            dispatchForm.validateFields().then(values => {
+              const newDispatch = {
+                id: `CV-${Date.now()}`,
+                number: values.number,
+                type: values.type,
+                content: values.content,
+                unit: values.unit,
+                date: values.date ? values.date.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+                handler: values.handler
+              };
+              setDispatches([newDispatch, ...dispatches]);
+              message.success('Đã thêm công văn mới thành công!');
+              setDispatchModalOpen(false);
+              dispatchForm.resetFields();
+            });
+          }}
+        >
+          <Form form={dispatchForm} layout="vertical">
+            <Form.Item name="number" label="Số công văn" rules={[{ required: true, message: 'Nhập số công văn' }]}>
+              <Input placeholder="102/2026/CV-STP" />
+            </Form.Item>
+            <Form.Item name="type" label="Loại công văn" initialValue="Công văn đến" rules={[{ required: true }]}>
+              <Select options={[{ value: 'Công văn đến', label: 'Công văn đến' }, { value: 'Công văn đi', label: 'Công văn đi' }]} />
+            </Form.Item>
+            <Form.Item name="content" label="Nội dung trích yếu" rules={[{ required: true, message: 'Nhập nội dung' }]}>
+              <Input.TextArea rows={2} placeholder="Trích yếu nội dung công văn..." />
+            </Form.Item>
+            <Form.Item name="unit" label="Đơn vị gửi/nhận">
+              <Input placeholder="Sở Tư Pháp / TAND Quận 1 / Khách hàng..." />
+            </Form.Item>
+            <Form.Item name="date" label="Ngày phát hành / nhận" initialValue={dayjs()}>
+              <DatePicker className="w-full" />
+            </Form.Item>
+            <Form.Item name="handler" label="Người xử lý" initialValue="Nguyễn Văn Trưởng" rules={[{ required: true }]}>
+              <Select options={staff.map(s => ({ value: s.name, label: s.name }))} />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Modal tạo Kỷ luật */}
+        <Modal
+          title="Thêm quyết định kỷ luật lao động"
+          open={disciplineModalOpen}
+          onCancel={() => { setDisciplineModalOpen(false); disciplineForm.resetFields(); }}
+          onOk={() => {
+            disciplineForm.validateFields().then(values => {
+              const newDisc = {
+                id: `KL-${Date.now()}`,
+                staffName: values.staffName,
+                type: values.type,
+                reason: values.reason,
+                date: values.date ? values.date.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+                notes: values.notes
+              };
+              setDisciplines([newDisc, ...disciplines]);
+              message.success('Đã ghi nhận quyết định kỷ luật!');
+              setDisciplineModalOpen(false);
+              disciplineForm.resetFields();
+            });
+          }}
+        >
+          <Form form={disciplineForm} layout="vertical">
+            <Form.Item name="staffName" label="Nhân viên bị kỷ luật" rules={[{ required: true, message: 'Chọn nhân viên' }]}>
+              <Select options={staff.map(s => ({ value: s.name, label: s.name }))} />
+            </Form.Item>
+            <Form.Item name="type" label="Hình thức kỷ luật" initialValue="Nhắc nhở" rules={[{ required: true }]}>
+              <Select options={[{ value: 'Nhắc nhở', label: 'Nhắc nhở' }, { value: 'Khiển trách', label: 'Khiển trách' }, { value: 'Cảnh cáo', label: 'Cảnh cáo' }, { value: 'Phạt tiền', label: 'Phạt tiền' }, { value: 'Sa thải', label: 'Sa thải' }]} />
+            </Form.Item>
+            <Form.Item name="reason" label="Lý do kỷ luật" rules={[{ required: true, message: 'Nhập lý do' }]}>
+              <Input.TextArea rows={2} placeholder="Nêu rõ lý do kỷ luật..." />
+            </Form.Item>
+            <Form.Item name="date" label="Ngày quyết định" initialValue={dayjs()}>
+              <DatePicker className="w-full" />
+            </Form.Item>
+            <Form.Item name="notes" label="Ghi chú">
+              <Input placeholder="Ghi chú thêm..." />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Modal tạo Khen thưởng */}
+        <Modal
+          title="Thêm quyết định khen thưởng"
+          open={rewardModalOpen}
+          onCancel={() => { setRewardModalOpen(false); rewardForm.resetFields(); }}
+          onOk={() => {
+            rewardForm.validateFields().then(values => {
+              const newRew = {
+                id: `KT-${Date.now()}`,
+                staffName: values.staffName,
+                type: values.type,
+                reason: values.reason,
+                bonus: values.bonus || 0,
+                date: values.date ? values.date.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+                notes: values.notes
+              };
+              setRewards([newRew, ...rewards]);
+              message.success('Đã ghi nhận khen thưởng thành công!');
+              setRewardModalOpen(false);
+              rewardForm.resetFields();
+            });
+          }}
+        >
+          <Form form={rewardForm} layout="vertical">
+            <Form.Item name="staffName" label="Nhân viên khen thưởng" rules={[{ required: true, message: 'Chọn nhân viên' }]}>
+              <Select options={staff.map(s => ({ value: s.name, label: s.name }))} />
+            </Form.Item>
+            <Form.Item name="type" label="Hình thức khen thưởng" initialValue="Bằng khen" rules={[{ required: true }]}>
+              <Select options={[{ value: 'Bằng khen', label: 'Bằng khen' }, { value: 'Tiền thưởng', label: 'Tiền thưởng' }, { value: 'Nhân viên của tháng', label: 'Nhân viên của tháng' }, { value: 'Khác', label: 'Khác' }]} />
+            </Form.Item>
+            <Form.Item name="reason" label="Lý do khen thưởng" rules={[{ required: true, message: 'Nhập lý do' }]}>
+              <Input.TextArea rows={2} placeholder="Nêu lý do khen thưởng..." />
+            </Form.Item>
+            <Form.Item name="bonus" label="Số tiền thưởng (VND)">
+              <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
+            </Form.Item>
+            <Form.Item name="date" label="Ngày quyết định" initialValue={dayjs()}>
+              <DatePicker className="w-full" />
+            </Form.Item>
+            <Form.Item name="notes" label="Ghi chú">
+              <Input placeholder="Ghi chú thêm..." />
+            </Form.Item>
           </Form>
         </Modal>
       </div>
