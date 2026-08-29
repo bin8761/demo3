@@ -704,6 +704,7 @@ export default function App() {
       if (values.expireDate) values.expireDate = values.expireDate.format('YYYY-MM-DD');
       if (values.fromDate) values.fromDate = values.fromDate.format('YYYY-MM-DD');
       if (values.toDate) values.toDate = values.toDate.format('YYYY-MM-DD');
+      if (values.endDate && typeof values.endDate.format === 'function') values.endDate = values.endDate.format('YYYY-MM-DD');
 
       // Optimistic update: dùng response trả về từ API để cập nhật state ngay
       switch (createModal.type) {
@@ -2701,6 +2702,21 @@ export default function App() {
                           <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Chờ bổ sung', label: 'Chờ bổ sung' }, { value: 'Hoàn thành', label: 'Hoàn thành' }, { value: 'Đóng hồ sơ', label: 'Đóng hồ sơ' }]} />
                         </Form.Item>
                       </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="contractNumber" label="Số hợp đồng">
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="endDate" label="Ngày kết thúc">
+                          <Input placeholder="YYYY-MM-DD (để trống nếu chưa kết thúc)" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item name="notes" label="Lưu ý quan trọng">
+                          <Input.TextArea rows={2} />
+                        </Form.Item>
+                      </Col>
                     </Row>
                   </Form>
 
@@ -2810,6 +2826,26 @@ export default function App() {
                       <Col xs={24} sm={12}>
                         <Form.Item name="status" label="Trạng thái">
                           <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Đang thụ lý', label: 'Đang thụ lý' }, { value: 'Tạm đình chỉ', label: 'Tạm đình chỉ' }, { value: 'Hoàn thành', label: 'Hoàn thành' }, { value: 'Đóng hồ sơ', label: 'Đóng hồ sơ' }]} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="contractNumber" label="Số hợp đồng">
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="advancePayment" label="Số tiền tạm ứng (VND)">
+                          <InputNumber className="w-full" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => v!.replace(/,/g, '') as unknown as number} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="endDate" label="Ngày kết thúc">
+                          <Input placeholder="YYYY-MM-DD (để trống nếu chưa kết thúc)" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={24}>
+                        <Form.Item name="notes" label="Lưu ý hồ sơ">
+                          <Input.TextArea rows={2} />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -3236,6 +3272,9 @@ export default function App() {
                 <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
                   <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Chờ bổ sung', label: 'Chờ bổ sung' }, { value: 'Hoàn thành', label: 'Hoàn thành' }]} />
                 </Form.Item>
+                <Form.Item name="endDate" label="Ngày kết thúc (Không bắt buộc)">
+                  <DatePicker className="w-full" placeholder="Chọn ngày kết thúc (nếu hồ sơ đã xong)" />
+                </Form.Item>
                 <Form.Item name="notes" label="Lưu ý">
                   <Input.TextArea rows={2} placeholder="Ghi chú quan trọng cho quản lý..." />
                 </Form.Item>
@@ -3270,6 +3309,9 @@ export default function App() {
                 </Form.Item>
                 <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
                   <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang thụ lý', label: 'Đang thụ lý' }, { value: 'Đang chuẩn bị xét xử', label: 'Đang chuẩn bị xét xử' }, { value: 'Hoàn thành', label: 'Hoàn thành' }]} />
+                </Form.Item>
+                <Form.Item name="endDate" label="Ngày kết thúc (Không bắt buộc)">
+                  <DatePicker className="w-full" placeholder="Chọn ngày kết thúc (nếu vụ án đã xong)" />
                 </Form.Item>
                 <Form.Item name="notes" label="Lưu ý hồ sơ">
                   <Input.TextArea rows={2} placeholder="Ghi chú lưu ý về hồ sơ, nhân viên đang xử lý..." />
