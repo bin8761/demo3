@@ -687,6 +687,8 @@ export default function App() {
         setCurrentAttachmentName(data?.attachmentName || null);
       }
       
+      editForm.resetFields();
+      if (data) editForm.setFieldsValue(data);
       setDetailModal({ visible: true, type, data });
     } catch (e) {
       messageApi.error('Không thể lấy chi tiết thông tin');
@@ -2648,6 +2650,7 @@ export default function App() {
               {detailModal.type === 'profile' && (
                 <div>
                   <Form
+                    key={detailModal.data?.id}
                     form={editForm}
                     layout="vertical"
                     onFinish={handleUpdateProfile}
@@ -2658,7 +2661,10 @@ export default function App() {
                       serviceType: detailModal.data.serviceType,
                       deadline: detailModal.data.deadline,
                       price: detailModal.data.price,
-                      status: detailModal.data.status
+                      status: detailModal.data.status,
+                      contractNumber: detailModal.data.contractNumber,
+                      endDate: detailModal.data.endDate,
+                      notes: detailModal.data.notes
                     }}
                   >
                     <Row gutter={16}>
@@ -2774,6 +2780,7 @@ export default function App() {
               {detailModal.type === 'lawsuit' && (
                 <div>
                   <Form
+                    key={detailModal.data?.id}
                     form={editForm}
                     layout="vertical"
                     onFinish={handleUpdateLawsuit}
@@ -2784,7 +2791,11 @@ export default function App() {
                       supportId: detailModal.data.supportId,
                       court: detailModal.data.court,
                       caseNumber: detailModal.data.caseNumber,
-                      status: detailModal.data.status
+                      status: detailModal.data.status,
+                      contractNumber: detailModal.data.contractNumber,
+                      advancePayment: detailModal.data.advancePayment,
+                      endDate: detailModal.data.endDate,
+                      notes: detailModal.data.notes
                     }}
                   >
                     <Row gutter={16}>
