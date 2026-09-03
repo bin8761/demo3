@@ -1750,6 +1750,7 @@ export default function App() {
                           columns={[
                             { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                             { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                             { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                             { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                             { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
@@ -1775,6 +1776,7 @@ export default function App() {
                           columns={[
                             { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                             { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                             { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                             { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                             { title: 'Nhân viên', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
@@ -1795,6 +1797,7 @@ export default function App() {
                           columns={[
                             { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                             { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                             { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                             { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                             { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
@@ -1882,6 +1885,7 @@ export default function App() {
                     columns={[
                       { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                       { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                       { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                       { title: 'Loại dịch vụ', dataIndex: 'serviceType', key: 'serviceType' },
@@ -1944,6 +1948,7 @@ export default function App() {
                     columns={[
                       { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                       { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                       { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                       { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
@@ -2006,6 +2011,7 @@ export default function App() {
                     columns={[
                       { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                       { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                       { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                       { title: 'Nhân viên', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
@@ -2187,6 +2193,7 @@ export default function App() {
                                   { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                                   { title: 'Mã hồ sơ', dataIndex: 'id', key: 'id' },
                                   { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                                   { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                                   { title: 'Nhân viên phụ trách', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
                                   { title: 'Giá trị dịch vụ', dataIndex: 'price', key: 'price', render: (v) => `${v?.toLocaleString() || 0}đ` },
@@ -2210,6 +2217,7 @@ export default function App() {
                                   { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                                   { title: 'Mã vụ án', dataIndex: 'id', key: 'id' },
                                   { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                                   { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                                   { title: 'Nhân viên phụ trách', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
                                   { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
@@ -2233,6 +2241,7 @@ export default function App() {
                                   { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                                   { title: 'Mã hồ sơ', dataIndex: 'id', key: 'id' },
                                   { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                             { title: 'Địa chỉ', dataIndex: 'customerId', key: 'customerAddress', ellipsis: true, render: (cid) => customers.find(c => c.id === cid)?.address || '—' },
                                   { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                                   { title: 'Nhân viên phụ trách', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
                                   { title: 'Giá trị', dataIndex: 'price', key: 'price', render: (v) => `${v?.toLocaleString() || 0}đ` },
