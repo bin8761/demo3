@@ -819,7 +819,8 @@ export default function App() {
           setCustomers(prev => [...prev, created]);
           break;
         }
-        case 'profile': {
+        case 'profile':
+        case 'business-profile': {
           const created = await serviceProfileApi.create(values);
           setProfiles(prev => [...prev, created]);
           break;
@@ -1190,6 +1191,7 @@ export default function App() {
     { key: 'departments', icon: <ApartmentOutlined />, label: 'Tổ chức & Phòng ban' },
     { key: 'staff', icon: <UserOutlined />, label: 'Nhân sự' },
     { key: 'profiles', icon: <FileTextOutlined />, label: 'Hồ sơ dịch vụ' },
+    { key: 'business-profiles', icon: <SolutionOutlined />, label: 'Hồ sơ Doanh nghiệp' },
     { key: 'lawsuits', icon: <SafetyCertificateOutlined />, label: 'Vụ án / Tố tụng' },
     { key: 'tasks', icon: <BarChartOutlined />, label: 'Báo cáo tháng' },
     { key: 'schedules', icon: <CalendarOutlined />, label: 'Lịch làm việc' },
@@ -1893,6 +1895,67 @@ export default function App() {
                           return <Tag color={color}>{s}</Tag>;
                         }
                       },
+                      { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                      { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                      {
+                        title: 'Thao tác',
+                        key: 'action',
+                        render: (_, record) => (
+                          <Space>
+                            <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); handleOpenDetail('profile', record.id); }}>Chi tiết</Button>
+                            <Button
+                              size="small"
+                              type="link"
+                              onClick={(e) => { e.stopPropagation(); setChatChannel({ type: 'profile', id: record.id, name: record.title }); setCurrentMenu('chat'); }}
+                            >
+                              Trao đổi
+                            </Button>
+                          </Space>
+                        )
+                      }
+                    ]}
+                  />
+                </Card>
+              )}
+
+              {/* ---------------------------------------------------- */}
+              {/* TAB: HỒ SƠ DOANH NGHIỆP */}
+              {/* ---------------------------------------------------- */}
+              {currentMenu === 'business-profiles' && (
+                <Card
+                  title="Hồ sơ Doanh nghiệp (Phòng Hồ sơ Doanh nghiệp)"
+                  extra={
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'business-profile' })}>
+                      Tạo hồ sơ doanh nghiệp mới
+                    </Button>
+                  }
+                  className="glass-panel"
+                >
+                  <Table
+                    dataSource={profiles.filter(p => p.serviceType === 'Doanh nghiệp')}
+                    rowKey="id"
+                    onRow={(record) => ({
+                      onClick: () => handleOpenDetail('profile', record.id),
+                      style: { cursor: 'pointer' }
+                    })}
+                    columns={[
+                      { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
+                      { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                      { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
+                      { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
+                      {
+                        title: 'Tình trạng',
+                        dataIndex: 'status',
+                        key: 'status',
+                        render: (s) => {
+                          let color = 'blue';
+                          if (s === 'Hoàn thành' || s === 'Đóng hồ sơ') color = 'green';
+                          if (s === 'Chờ bổ sung') color = 'orange';
+                          return <Tag color={color}>{s}</Tag>;
+                        }
+                      },
+                      { title: 'Giá dịch vụ', dataIndex: 'price', key: 'price', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
                       { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
                       { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                       {
@@ -3824,6 +3887,41 @@ export default function App() {
                 </Form.Item>
                 <Form.Item name="notes" label="Lưu ý">
                   <Input.TextArea rows={2} placeholder="Ghi chú quan trọng cho quản lý..." />
+                </Form.Item>
+              </>
+            )}
+
+            {createModal.type === 'business-profile' && (
+              <>
+                <Form.Item name="title" label="Tiêu đề hồ sơ doanh nghiệp" rules={[{ required: true, message: 'Nhập tiêu đề' }]}>
+                  <Input placeholder="Hồ sơ thành lập Công ty TNHH ABC" />
+                </Form.Item>
+                <Form.Item name="customerId" label="Khách hàng doanh nghiệp" rules={[{ required: true, message: 'Chọn khách hàng' }]}>
+                  <Select options={customers.map(c => ({ value: c.id, label: c.name }))} />
+                </Form.Item>
+                <Form.Item name="contractNumber" label="Số hợp đồng">
+                  <Input placeholder="HDDN-01/2026" />
+                </Form.Item>
+                <Form.Item name="serviceType" label="Loại hình dịch vụ" initialValue="Doanh nghiệp">
+                  <Select options={[{ value: 'Doanh nghiệp', label: 'Doanh nghiệp' }]} />
+                </Form.Item>
+                <Form.Item name="managerId" label="Người phụ trách" rules={[{ required: true }]}>
+                  <Select options={staff.map(s => ({ value: s.id, label: `${s.name} (${departments.find(d => d.id === s.departmentId)?.name || ''})` }))} />
+                </Form.Item>
+                <Form.Item name="deadline" label="Hạn xử lý" rules={[{ required: true }]}>
+                  <DatePicker className="w-full" />
+                </Form.Item>
+                <Form.Item name="price" label="Giá trị dịch vụ (VND)" rules={[{ required: true }]}>
+                  <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
+                </Form.Item>
+                <Form.Item name="status" label="Tình trạng" initialValue="Mới tiếp nhận">
+                  <Select options={[{ value: 'Mới tiếp nhận', label: 'Mới tiếp nhận' }, { value: 'Đang giải quyết', label: 'Đang giải quyết' }, { value: 'Đang xử lý', label: 'Đang xử lý' }, { value: 'Chờ bổ sung', label: 'Chờ bổ sung' }, { value: 'Hoàn thành', label: 'Hoàn thành' }]} />
+                </Form.Item>
+                <Form.Item name="endDate" label="Ngày kết thúc (Không bắt buộc)">
+                  <DatePicker className="w-full" placeholder="Chọn ngày kết thúc" />
+                </Form.Item>
+                <Form.Item name="notes" label="Lưu ý">
+                  <Input.TextArea rows={2} placeholder="Ghi chú quan trọng..." />
                 </Form.Item>
               </>
             )}
