@@ -434,6 +434,147 @@ app.get('/api/departments', authenticateJWT, async (req: AuthenticatedRequest, r
   res.json(departments);
 });
 
+// ----------------------------------------------------
+// DOCUMENTS & FOLDERS APIs
+// ----------------------------------------------------
+app.get('/api/documents', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const documents = await prisma.document.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(documents);
+});
+
+app.post('/api/documents', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newDoc = await prisma.document.create({
+      data: {
+        name: data.name,
+        fileType: data.fileType || 'pdf',
+        fileSize: data.fileSize || '1.2 MB',
+        url: data.url || '/uploads/sample.pdf',
+        uploadedBy: req.user!.name,
+        folderId: data.folderId || null
+      }
+    });
+    await logAction(req.user!.id, 'Tải lên tài liệu', newDoc.name);
+    res.status(201).json(newDoc);
+  } catch (e) {
+    res.status(400).json({ error: 'Tạo tài liệu thất bại' });
+  }
+});
+
+app.get('/api/folders', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const folders = await prisma.folder.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(folders);
+});
+
+app.post('/api/folders', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newFolder = await prisma.folder.create({
+      data: {
+        name: data.name,
+        parentId: data.parentId || null
+      }
+    });
+    await logAction(req.user!.id, 'Tạo thư mục mới', newFolder.name);
+    res.status(201).json(newFolder);
+  } catch (e) {
+    res.status(400).json({ error: 'Tạo thư mục thất bại' });
+  }
+});
+
+// ----------------------------------------------------
+// ACTIVITY LOGS API
+// ----------------------------------------------------
+app.get('/api/logs', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const logs = await prisma.activityLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  });
+  res.json(logs);
+});
+
+// ----------------------------------------------------
+// TIMEKEEPING & LEAVE REQUESTS APIs
+// ----------------------------------------------------
+app.get('/api/timekeeping', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const timekeeping = await prisma.timekeeping.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(timekeeping);
+});
+
+app.post('/api/timekeeping', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newTk = await prisma.timekeeping.create({
+      data: {
+        staffId: req.user!.id,
+        date: data.date || new Date().toISOString().split('T')[0],
+        checkIn: data.checkIn || '08:00',
+        checkOut: data.checkOut || '17:30',
+        status: data.status || 'Đúng giờ'
+      }
+    });
+    res.status(201).json(newTk);
+  } catch (e) {
+    res.status(400).json({ error: 'Chấm công thất bại' });
+  }
+});
+
+app.get('/api/leave-requests', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const leaveRequests = await prisma.leaveRequest.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(leaveRequests);
+});
+
+app.post('/api/leave-requests', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newLv = await prisma.leaveRequest.create({
+      data: {
+        staffId: req.user!.id,
+        fromDate: data.fromDate,
+        toDate: data.toDate,
+        reason: data.reason,
+        status: 'Chờ duyệt'
+      }
+    });
+    res.status(201).json(newLv);
+  } catch (e) {
+    res.status(400).json({ error: 'Gửi đơn nghỉ phép thất bại' });
+  }
+});
+
+// ----------------------------------------------------
+// CHAT API
+// ----------------------------------------------------
+app.get('/api/chat', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const { channelType, channelId } = req.query;
+  const messages = await prisma.chatMessage.findMany({
+    where: {
+      ...(channelType && { channelType: String(channelType) }),
+      ...(channelId && { channelId: String(channelId) })
+    },
+    orderBy: { createdAt: 'asc' }
+  });
+  res.json(messages);
+});
+
+app.post('/api/chat', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { channelType, channelId, content } = req.body;
+    const newMsg = await prisma.chatMessage.create({
+      data: {
+        channelType: channelType || 'direct',
+        channelId: channelId || 'all',
+        senderId: req.user!.id,
+        content
+      }
+    });
+    res.status(201).json(newMsg);
+  } catch (e) {
+    res.status(400).json({ error: 'Gửi tin nhắn thất bại' });
+  }
+});
+
 // Node/Express Server listen
 app.listen(port, () => {
   console.log(`🚀 Backend Express Server running with MySQL & Prisma ORM at http://localhost:${port}`);
