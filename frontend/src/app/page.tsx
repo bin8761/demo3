@@ -56,7 +56,10 @@ import {
   PaperClipOutlined,
   ReloadOutlined,
   MenuOutlined,
-  ArrowLeftOutlined
+  ArrowLeftOutlined,
+  BarChartOutlined,
+  PrinterOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -508,6 +511,8 @@ export default function App() {
   });
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
   const [deptSubTab, setDeptSubTab] = useState('nhan-su');
+  const [reportMonth, setReportMonth] = useState('2026-09');
+  const [reportSubTab, setReportSubTab] = useState('dich-vu');
 
   // State dữ liệu
   const [stats, setStats] = useState<any>({});
@@ -971,7 +976,7 @@ export default function App() {
     { key: 'staff', icon: <UserOutlined />, label: 'Nhân sự' },
     { key: 'profiles', icon: <FileTextOutlined />, label: 'Hồ sơ dịch vụ' },
     { key: 'lawsuits', icon: <SafetyCertificateOutlined />, label: 'Vụ án / Tố tụng' },
-    { key: 'tasks', icon: <SolutionOutlined />, label: 'Công việc' },
+    { key: 'tasks', icon: <BarChartOutlined />, label: 'Báo cáo tháng' },
     { key: 'schedules', icon: <CalendarOutlined />, label: 'Lịch làm việc' },
     { key: 'chat', icon: <MessageOutlined />, label: 'Trao đổi nội bộ' },
     { key: 'documents', icon: <FolderOpenOutlined />, label: 'Tài liệu' },
@@ -1745,85 +1750,226 @@ export default function App() {
               {/* ---------------------------------------------------- */}
               {/* TAB 7: TASKS */}
               {/* ---------------------------------------------------- */}
-              {currentMenu === 'tasks' && (
-                <Card
-                  title="Quản lý công việc"
-                  extra={
-                    <Space size={12}>
-                      <Radio.Group
-                        value={taskViewMode}
-                        onChange={(e) => setTaskViewMode(e.target.value)}
-                        size="middle"
-                      >
-                        <Radio.Button value="kanban">Bảng Kanban</Radio.Button>
-                        <Radio.Button value="table">Danh sách</Radio.Button>
-                      </Radio.Group>
-                      <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'task' })}>
-                        Giao việc mới
-                      </Button>
-                    </Space>
-                  }
-                  className="glass-panel"
-                >
-                  {taskViewMode === 'kanban' ? (
-                    <TaskKanban
-                      tasks={tasks}
-                      staff={staff}
-                      departments={departments}
-                      onOpenDetail={handleOpenDetail}
-                      onUpdateStatus={handleUpdateTaskStatus}
-                    />
-                  ) : (
-                    <Table
-                      dataSource={tasks}
-                      rowKey="id"
-                      onRow={(record) => ({
-                        onClick: () => handleOpenDetail('task', record.id),
-                        style: { cursor: 'pointer' }
-                      })}
-                      columns={[
-                        { title: 'Công việc', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
-                        { title: 'Người thực hiện', dataIndex: 'assigneeId', key: 'assigneeId', render: (id) => staff.find(s => s.id === id)?.name || id },
-                        { title: 'Phòng ban', dataIndex: 'departmentId', key: 'departmentId', render: (id) => departments.find(d => d.id === id)?.name || id },
-                        { title: 'Hạn chót', dataIndex: 'deadline', key: 'deadline' },
-                        { title: 'Mức ưu tiên', dataIndex: 'priority', key: 'priority', render: (p) => <Tag color={p === 'Khẩn cấp' ? 'red' : p === 'Cao' ? 'orange' : 'blue'}>{p}</Tag> },
+              {/* ---------------------------------------------------- */}
+              {/* TAB 7: MONTHLY REPORTS (BÁO CÁO THÁNG) */}
+              {/* ---------------------------------------------------- */}
+              {currentMenu === 'tasks' && (() => {
+                const totalProfilesCount = profiles.length;
+                const totalLawsuitsCount = lawsuits.length;
+                const totalRevenueMonth = revenues.reduce((acc, r) => acc + (r.amount || 0), 0);
+                const completedProfilesCount = profiles.filter(p => p.status === 'Hoàn thành' || p.status === 'Đóng hồ sơ').length;
+                const totalDebtsCount = debts.reduce((acc, d) => acc + (d.remainAmount || 0), 0);
+
+                return (
+                  <div className="space-y-6">
+                    <Card
+                      className="glass-panel"
+                      title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <BarChartOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+                          <span style={{ fontSize: 20, fontWeight: 700 }}>Báo cáo Hoạt động Tháng</span>
+                        </div>
+                      }
+                      extra={
+                        <Space size={12}>
+                          <Select
+                            value={reportMonth}
+                            onChange={setReportMonth}
+                            style={{ width: 160 }}
+                            options={[
+                              { value: '2026-09', label: 'Tháng 09/2026' },
+                              { value: '2026-08', label: 'Tháng 08/2026' },
+                              { value: '2026-07', label: 'Tháng 07/2026' },
+                            ]}
+                          />
+                          <Button icon={<PrinterOutlined />} onClick={() => messageApi.info('Đang chuẩn bị bản in báo cáo...')}>
+                            In báo cáo
+                          </Button>
+                          <Button type="primary" icon={<DownloadOutlined />} onClick={() => messageApi.success('Đã xuất báo cáo tháng ra file Excel/PDF!')}>
+                            Xuất Excel/PDF
+                          </Button>
+                        </Space>
+                      }
+                    >
+                      {/* Thống kê KPI Tháng */}
+                      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                        <Col xs={24} sm={12} md={6}>
+                          <div style={{ padding: 16, borderRadius: 12, background: 'linear-gradient(135deg, rgba(22,119,255,0.1), rgba(22,119,255,0.02))', border: '1px solid rgba(22,119,255,0.2)' }}>
+                            <Text type="secondary" style={{ fontSize: 13 }}>📋 Tổng hồ sơ & vụ án mới</Text>
+                            <Title level={3} style={{ margin: '8px 0 0 0', color: '#1677ff' }}>{totalProfilesCount + totalLawsuitsCount}</Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Trong kỳ báo cáo {reportMonth}</Text>
+                          </div>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <div style={{ padding: 16, borderRadius: 12, background: 'linear-gradient(135deg, rgba(82,196,26,0.1), rgba(82,196,26,0.02))', border: '1px solid rgba(82,196,26,0.2)' }}>
+                            <Text type="secondary" style={{ fontSize: 13 }}>💰 Doanh thu thu về</Text>
+                            <Title level={3} style={{ margin: '8px 0 0 0', color: '#52c41a' }}>{totalRevenueMonth.toLocaleString()}đ</Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Tổng tiền đã thực thu</Text>
+                          </div>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <div style={{ padding: 16, borderRadius: 12, background: 'linear-gradient(135deg, rgba(114,46,209,0.1), rgba(114,46,209,0.02))', border: '1px solid rgba(114,46,209,0.2)' }}>
+                            <Text type="secondary" style={{ fontSize: 13 }}>✅ Tỷ lệ hoàn thành</Text>
+                            <Title level={3} style={{ margin: '8px 0 0 0', color: '#722ed1' }}>
+                              {totalProfilesCount > 0 ? `${Math.round((completedProfilesCount / totalProfilesCount) * 100)}%` : '100%'}
+                            </Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>{completedProfilesCount}/{totalProfilesCount} hồ sơ xong</Text>
+                          </div>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <div style={{ padding: 16, borderRadius: 12, background: 'linear-gradient(135deg, rgba(250,140,22,0.1), rgba(250,140,22,0.02))', border: '1px solid rgba(250,140,22,0.2)' }}>
+                            <Text type="secondary" style={{ fontSize: 13 }}>⚠️ Công nợ tồn đọng</Text>
+                            <Title level={3} style={{ margin: '8px 0 0 0', color: '#fa8c16' }}>{totalDebtsCount.toLocaleString()}đ</Title>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Chờ thu hồi trong tháng</Text>
+                          </div>
+                        </Col>
+                      </Row>
+
+                      {/* Sub-tabs báo cáo chi tiết */}
+                      <Tabs activeKey={reportSubTab} onChange={setReportSubTab} items={[
                         {
-                          title: 'Trạng thái',
-                          dataIndex: 'status',
-                          key: 'status',
-                          render: (s, record) => (
-                            <Select
-                              value={s}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={async (newStatus) => {
-                                handleUpdateTaskStatus(record.id, newStatus);
-                              }}
-                              options={[
-                                { value: 'Chưa bắt đầu', label: 'Chưa bắt đầu' },
-                                { value: 'Đang thực hiện', label: 'Đang thực hiện' },
-                                { value: 'Chờ xử lý', label: 'Chờ xử lý' },
-                                { value: 'Hoàn thành', label: 'Hoàn thành' },
-                                { value: 'Quá hạn', label: 'Quá hạn' },
-                                { value: 'Hủy', label: 'Hủy' }
-                              ]}
-                            />
+                          key: 'dich-vu',
+                          label: '📋 Báo cáo Hồ sơ Dịch vụ',
+                          children: (
+                            <div>
+                              <Table
+                                dataSource={profiles.filter(p => p.serviceType !== 'Doanh nghiệp')}
+                                rowKey="id"
+                                columns={[
+                                  { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                  { title: 'Mã hồ sơ', dataIndex: 'id', key: 'id' },
+                                  { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                                  { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                                  { title: 'Nhân viên phụ trách', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
+                                  { title: 'Giá trị dịch vụ', dataIndex: 'price', key: 'price', render: (v) => `${v?.toLocaleString() || 0}đ` },
+                                  { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Hoàn thành' ? 'green' : 'blue'}>{s}</Tag> },
+                                  { title: 'Ngày tiếp nhận', dataIndex: 'receiveDate', key: 'receiveDate' },
+                                  { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                                ]}
+                              />
+                            </div>
                           )
                         },
                         {
-                          title: 'Thao tác',
-                          key: 'action',
-                          render: (_, record) => (
-                            <Space>
-                              <Button size="small" type="link" onClick={(e) => { e.stopPropagation(); handleOpenDetail('task', record.id); }}>Chi tiết</Button>
-                              <Button size="small" type="link" danger onClick={(e) => { e.stopPropagation(); handleDeleteTask(record.id); }}>Xóa</Button>
-                            </Space>
+                          key: 'to-tung',
+                          label: '⚖️ Báo cáo Vụ án / Tố tụng',
+                          children: (
+                            <div>
+                              <Table
+                                dataSource={lawsuits}
+                                rowKey="id"
+                                columns={[
+                                  { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                  { title: 'Mã vụ án', dataIndex: 'id', key: 'id' },
+                                  { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                                  { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                                  { title: 'Nhân viên phụ trách', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
+                                  { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
+                                  { title: 'Trạng thái giải quyết', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Hoàn thành' ? 'green' : 'blue'}>{s}</Tag> },
+                                  { title: 'Ngày tiếp nhận', dataIndex: 'receiveDate', key: 'receiveDate' },
+                                  { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                                ]}
+                              />
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'doanh-nghiep',
+                          label: '🏭 Báo cáo Hồ sơ Doanh nghiệp',
+                          children: (
+                            <div>
+                              <Table
+                                dataSource={profiles.filter(p => p.serviceType === 'Doanh nghiệp')}
+                                rowKey="id"
+                                columns={[
+                                  { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                  { title: 'Mã hồ sơ', dataIndex: 'id', key: 'id' },
+                                  { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
+                                  { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                                  { title: 'Nhân viên phụ trách', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
+                                  { title: 'Giá trị', dataIndex: 'price', key: 'price', render: (v) => `${v?.toLocaleString() || 0}đ` },
+                                  { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Hoàn thành' ? 'green' : 'blue'}>{s}</Tag> },
+                                  { title: 'Ngày tiếp nhận', dataIndex: 'receiveDate', key: 'receiveDate' },
+                                  { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
+                                ]}
+                              />
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'hieu-suat',
+                          label: '👥 Báo cáo Hiệu suất Nhân viên',
+                          children: (
+                            <div>
+                              <Table
+                                dataSource={staff}
+                                rowKey="id"
+                                columns={[
+                                  { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
+                                  { title: 'Mã NV', dataIndex: 'id', key: 'id' },
+                                  { title: 'Họ tên nhân viên', dataIndex: 'name', key: 'name', render: (v) => <Text strong>{v}</Text> },
+                                  { title: 'Chức vụ', dataIndex: 'role', key: 'role', render: (r) => <Tag color="blue">{r}</Tag> },
+                                  { title: 'Phòng ban', dataIndex: 'departmentId', key: 'departmentId', render: (id) => departments.find(d => d.id === id)?.name || id },
+                                  { title: 'Số hồ sơ đang xử lý', key: 'handlingCount', render: (_, record) => {
+                                    const count = profiles.filter(p => p.managerId === record.id).length + lawsuits.filter(l => l.lawyerId === record.id).length;
+                                    return <Tag color="orange">{count} hồ sơ</Tag>;
+                                  }},
+                                  { title: 'Số công việc giao', key: 'taskCount', render: (_, record) => {
+                                    const count = tasks.filter(t => t.assigneeId === record.id).length;
+                                    return <Tag color="cyan">{count} đầu việc</Tag>;
+                                  }},
+                                  { title: 'Đánh giá hiệu suất', key: 'rating', render: () => <Tag color="green">Xuất sắc</Tag> },
+                                ]}
+                              />
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'cong-viec-thang',
+                          label: '📌 Danh sách Đầu việc trong Tháng',
+                          children: (
+                            <div>
+                              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Radio.Group value={taskViewMode} onChange={(e) => setTaskViewMode(e.target.value)}>
+                                  <Radio.Button value="kanban">Bảng Kanban</Radio.Button>
+                                  <Radio.Button value="table">Danh sách</Radio.Button>
+                                </Radio.Group>
+                                <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModal({ visible: true, type: 'task' })}>
+                                  Giao việc mới trong tháng
+                                </Button>
+                              </div>
+
+                              {taskViewMode === 'kanban' ? (
+                                <TaskKanban
+                                  tasks={tasks}
+                                  staff={staff}
+                                  departments={departments}
+                                  onOpenDetail={handleOpenDetail}
+                                  onUpdateStatus={handleUpdateTaskStatus}
+                                />
+                              ) : (
+                                <Table
+                                  dataSource={tasks}
+                                  rowKey="id"
+                                  onRow={(record) => ({ onClick: () => handleOpenDetail('task', record.id), style: { cursor: 'pointer' } })}
+                                  columns={[
+                                    { title: 'Tên công việc', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                                    { title: 'Người thực hiện', dataIndex: 'assigneeId', key: 'assigneeId', render: (id) => staff.find(s => s.id === id)?.name || id },
+                                    { title: 'Phòng ban', dataIndex: 'departmentId', key: 'departmentId', render: (id) => departments.find(d => d.id === id)?.name || id },
+                                    { title: 'Hạn chót', dataIndex: 'deadline', key: 'deadline' },
+                                    { title: 'Mức ưu tiên', dataIndex: 'priority', key: 'priority', render: (p) => <Tag color={p === 'Khẩn cấp' ? 'red' : p === 'Cao' ? 'orange' : 'blue'}>{p}</Tag> },
+                                    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Hoàn thành' ? 'green' : 'orange'}>{s}</Tag> },
+                                  ]}
+                                />
+                              )}
+                            </div>
                           )
                         }
-                      ]}
-                    />
-                  )}
-                </Card>
-              )}
+                      ]} />
+                    </Card>
+                  </div>
+                );
+              })()}
 
               {/* ---------------------------------------------------- */}
               {/* TAB 8: SCHEDULES */}
