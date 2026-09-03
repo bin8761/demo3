@@ -702,42 +702,42 @@ export default function App() {
       const [
         sData, cData, pData, lData, tData, schData, docData, folderData, revData, expData, debtData, contrData, stData, deptData, logData, tkData, lvData
       ] = await Promise.all([
-        dashboardApi.getStats(),
-        customerApi.getAll(),
-        serviceProfileApi.getAll(),
-        lawsuitApi.getAll(),
-        taskApi.getAll(),
-        scheduleApi.getAll(),
-        documentApi.getAll(),
-        folderApi.getAll(),
-        financeApi.getRevenues(),
-        financeApi.getExpenses(),
-        financeApi.getDebts(),
-        contractApi.getAll(),
-        hrApi.getStaff(),
-        hrApi.getDepartments(),
-        logApi.getAll(),
-        hrApi.getTimekeeping(),
-        hrApi.getLeaveRequests()
+        dashboardApi.getStats().catch(() => ({})),
+        customerApi.getAll().catch(() => []),
+        serviceProfileApi.getAll().catch(() => []),
+        lawsuitApi.getAll().catch(() => []),
+        taskApi.getAll().catch(() => []),
+        scheduleApi.getAll().catch(() => []),
+        documentApi.getAll().catch(() => []),
+        folderApi.getAll().catch(() => []),
+        financeApi.getRevenues().catch(() => []),
+        financeApi.getExpenses().catch(() => []),
+        financeApi.getDebts().catch(() => []),
+        contractApi.getAll().catch(() => []),
+        hrApi.getStaff().catch(() => []),
+        hrApi.getDepartments().catch(() => []),
+        logApi.getAll().catch(() => []),
+        hrApi.getTimekeeping().catch(() => []),
+        hrApi.getLeaveRequests().catch(() => [])
       ]);
 
-      setStats(sData);
-      setCustomers(cData);
-      setProfiles(pData);
-      setLawsuits(lData);
-      setTasks(tData);
-      setSchedules(schData);
-      setDocuments(docData);
-      setFolders(folderData);
-      setRevenues(revData);
-      setExpenses(expData);
-      setDebts(debtData);
-      setContracts(contrData);
-      setStaff(stData);
-      setDepartments(deptData);
-      setLogs(logData);
-      setTimekeeping(tkData);
-      setLeaveRequests(lvData);
+      setStats(sData || {});
+      setCustomers(cData || []);
+      setProfiles(pData || []);
+      setLawsuits(lData || []);
+      setTasks(tData || []);
+      setSchedules(schData || []);
+      setDocuments(docData || []);
+      setFolders(folderData || []);
+      setRevenues(revData || []);
+      setExpenses(expData || []);
+      setDebts(debtData || []);
+      setContracts(contrData || []);
+      setStaff(stData || []);
+      setDepartments(deptData || []);
+      setLogs(logData || []);
+      setTimekeeping(tkData || []);
+      setLeaveRequests(lvData || []);
     } catch (error) {
       console.error('Fetch data error:', error);
     }
