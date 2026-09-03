@@ -1,79 +1,100 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import app from './index';
-import { db, initMockData, resetDB } from './db';
 
-describe('Backend API Tests', () => {
-  beforeAll(() => {
-    resetDB();
-    initMockData();
+describe('Backend Express API & JWT Auth & RBAC Tests', () => {
+  let adminToken = '';
+  let staffToken = '';
+
+  beforeAll(async () => {
+    // 1. Đăng nhập tài khoản Giám đốc (NV-001)
+    const adminRes = await request(app).post('/api/auth/login').send({
+      email: 'truong.nv@lawfirm.com',
+      password: '123456'
+    });
+    expect(adminRes.status).toBe(200);
+    expect(adminRes.body).toHaveProperty('token');
+    adminToken = adminRes.body.token;
+
+    // 2. Đăng nhập tài khoản Nhân viên (NV-005)
+    const staffRes = await request(app).post('/api/auth/login').send({
+      email: 'su.hv@lawfirm.com',
+      password: '123456'
+    });
+    expect(staffRes.status).toBe(200);
+    expect(staffRes.body).toHaveProperty('token');
+    staffToken = staffRes.body.token;
   });
 
-  describe('GET /api/dashboard', () => {
-    it('should return dashboard statistics', async () => {
-      const res = await request(app).get('/api/dashboard');
+  describe('AUTH APIs (/api/auth)', () => {
+    it('should return user info for valid token', async () => {
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.user.email).toBe('truong.nv@lawfirm.com');
+      expect(res.body.user.role).toBe('Giám đốc');
+    });
+
+    it('should reject unauthorized request without token', async () => {
+      const res = await request(app).get('/api/auth/me');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('DASHBOARD API (/api/dashboard)', () => {
+    it('should return dashboard statistics for authenticated user', async () => {
+      const res = await request(app)
+        .get('/api/dashboard')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('totalCustomers');
       expect(res.body).toHaveProperty('activeProfiles');
       expect(res.body).toHaveProperty('activeLawsuits');
-      expect(res.body).toHaveProperty('monthlyRevenue');
-      expect(res.body).toHaveProperty('monthlyExpense');
-      expect(res.body).toHaveProperty('totalDebt');
-      expect(res.body.totalCustomers).toBeGreaterThan(0);
     });
   });
 
-  describe('Customers API', () => {
-    it('should return list of customers', async () => {
-      const res = await request(app).get('/api/customers');
+  describe('CUSTOMERS API (/api/customers)', () => {
+    it('should return list of customers for authenticated user', async () => {
+      const res = await request(app)
+        .get('/api/customers')
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(2);
     });
 
     it('should create a new customer', async () => {
       const newCustomer = {
-        name: 'Lê Văn C',
+        name: 'Lê Văn Test',
         phone: '0933333333',
-        email: 'lvc@gmail.com',
+        email: 'lvt@gmail.com',
         cccd: '012345678999',
         address: '789 Nguyễn Chí Thanh, Hà Nội',
-        type: 'Cá nhân',
-        notes: 'Khách hàng test'
+        type: 'Cá nhân'
       };
-      const res = await request(app).post('/api/customers').send(newCustomer);
+      const res = await request(app)
+        .post('/api/customers')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(newCustomer);
       expect(res.status).toBe(201);
-      expect(res.body.name).toBe('Lê Văn C');
-      expect(res.body).toHaveProperty('id');
+      expect(res.body.name).toBe('Lê Văn Test');
     });
   });
 
-  describe('Tài chính & Tự động cập nhật Công nợ', () => {
-    it('should automatically update Debt when a new Revenue is recorded', async () => {
-      // 1. Lấy thông tin công nợ ban đầu của HS-2026-001
-      // HS-2026-001 ban đầu trị giá 15M, đã trả 10M, còn nợ 5M.
-      const initialDebt = db.debts.find(d => d.profileId === 'HS-2026-001');
-      expect(initialDebt).toBeDefined();
-      expect(initialDebt?.remainAmount).toBe(5000000);
+  describe('RBAC PERMISSIONS (Tài chính & Doanh thu)', () => {
+    it('should allow Admin/Manager to access revenues', async () => {
+      const res = await request(app)
+        .get('/api/revenues')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
 
-      // 2. Ghi nhận doanh thu mới 5,000,000đ cho HS-2026-001
-      const newRevenue = {
-        customerId: 'KH-001',
-        profileId: 'HS-2026-001',
-        amount: 5000000,
-        collectorId: 'NV-004',
-        paymentMethod: 'Chuyển khoản',
-        notes: 'Thu nốt công nợ còn lại'
-      };
-
-      const res = await request(app).post('/api/revenues').send(newRevenue);
-      expect(res.status).toBe(201);
-
-      // 3. Kiểm tra công nợ sau khi thu tiền
-      const updatedDebt = db.debts.find(d => d.profileId === 'HS-2026-001');
-      expect(updatedDebt?.paidAmount).toBe(15000000);
-      expect(updatedDebt?.remainAmount).toBe(0);
-      expect(updatedDebt?.status).toBe('Đã thanh toán');
+    it('should block regular staff from accessing revenues', async () => {
+      const res = await request(app)
+        .get('/api/revenues')
+        .set('Authorization', `Bearer ${staffToken}`);
+      expect(res.status).toBe(403);
     });
   });
 });

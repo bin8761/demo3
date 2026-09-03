@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Staff {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         String
+  departmentId String
+  phone        String?
+  hireDate     String?
+  status       String   @default("Đang làm việc")
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Department {
+  id          String  @id
+  name        String
+  code        String
+  managerId   String?
+  description String?
+}
+
+model Customer {
+  id             String   @id @default(cuid())
+  name           String
+  type           String
+  phone          String?
+  email          String?
+  address        String?
+  taxId          String?
+  representative String?
+  createdAt      DateTime @default(now())
+}
+
+model ServiceProfile {
+  id             String   @id @default(cuid())
+  title          String
+  customerId     String
+  contractNumber String?
+  serviceType    String
+  managerId      String
+  price          Float    @default(0)
+  status         String
+  notes          String?  @db.Text
+  receiveDate    String
+  endDate        String?
+  createdAt      DateTime @default(now())
+}
+
+model Lawsuit {
+  id             String   @id @default(cuid())
+  title          String
+  customerId     String
+  contractNumber String?
+  lawyerId       String
+  advancePayment Float?   @default(0)
+  status         String
+  notes          String?  @db.Text
+  receiveDate    String
+  endDate        String?
+  createdAt      DateTime @default(now())
+}
+
+model Task {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?  @db.Text
+  assigneeId   String
+  departmentId String
+  deadline     String
+  priority     String
+  status       String
+  createdAt    DateTime @default(now())
+}
+
+model Contract {
+  id             String   @id @default(cuid())
+  title          String
+  customerId     String
+  value          Float    @default(0)
+  signDate       String
+  expireDate     String
+  managerId      String
+  status         String
+  attachmentName String?
+  attachmentUrl  String?  @db.Text
+  createdAt      DateTime @default(now())
+}
+
+model Schedule {
+  id          String   @id @default(cuid())
+  title       String
+  time        String
+  type        String
+  location    String?
+  date        String
+  status      String
+  organizerId String
+  createdAt   DateTime @default(now())
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  name       String
+  fileType   String
+  fileSize   String
+  url        String?  @db.Text
+  uploadedBy String
+  folderId   String?
+  createdAt  DateTime @default(now())
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+}
+
+model Revenue {
+  id            String   @id @default(cuid())
+  customerId    String
+  amount        Float    @default(0)
+  date          String
+  paymentMethod String
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  content   String
+  amount    Float    @default(0)
+  date      String
+  spenderId String
+  createdAt DateTime @default(now())
+}
+
+model Debt {
+  id           String   @id @default(cuid())
+  customerId   String
+  profileId    String?
+  lawsuitId    String?
+  totalAmount  Float    @default(0)
+  paidAmount   Float    @default(0)
+  remainAmount Float    @default(0)
+  status       String
+  createdAt    DateTime @default(now())
+}
+
+model Timekeeping {
+  id        String   @id @default(cuid())
+  staffId   String
+  date      String
+  checkIn   String
+  checkOut  String?
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model LeaveRequest {
+  id        String   @id @default(cuid())
+  staffId   String
+  fromDate  String
+  toDate    String
+  reason    String
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model Dispatch {
+  id        String   @id @default(cuid())
+  type      String
+  number    String
+  title     String
+  sender    String
+  receiver  String
+  date      String
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Discipline {
+  id        String   @id @default(cuid())
+  staffName String
+  type      String
+  reason    String
+  date      String
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Reward {
+  id        String   @id @default(cuid())
+  staffName String
+  type      String
+  reason    String
+  bonus     Float?   @default(0)
+  date      String
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  staffId   String
+  action    String
+  target    String
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  channelType String
+  channelId   String
+  senderId    String
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+}

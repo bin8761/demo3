@@ -1,624 +1,442 @@
-import express, { Request, Response } from 'express';
+import express, { Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { db, initMockData } from './db';
-import { Customer, ServiceProfile, Lawsuit, Task, Revenue, Expense, Debt, Schedule, ChatMessage, Document, Contract } from './types';
+import cookieParser from 'cookie-parser';
+import bcrypt from 'bcryptjs';
+import { prisma } from './lib/prisma';
+import authRouter from './routes/auth';
+import { authenticateJWT, requireRole, isManagerOrAdminUser, AuthenticatedRequest } from './middleware/auth';
 
 dotenv.config();
-initMockData();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
-// Log helper
-function logAction(staffId: string, staffName: string, action: string, target: string) {
-  db.systemLogs.unshift({
-    id: `LOG-${Date.now()}`,
-    staffId,
-    staffName,
-    action,
-    target,
-    timestamp: new Date().toISOString()
-  });
+// Logging helper
+async function logAction(staffId: string, action: string, target: string) {
+  try {
+    await prisma.activityLog.create({
+      data: { staffId, action, target }
+    });
+  } catch (e) {
+    console.error('Failed to log action:', e);
+  }
 }
 
 // ----------------------------------------------------
-// DASHBOARD ENDPOINT
+// AUTH ROUTER (/api/auth)
 // ----------------------------------------------------
-app.get('/api/dashboard', (req: Request, res: Response) => {
-  const totalCustomers = db.customers.length;
-  const activeProfiles = db.serviceProfiles.filter(p => p.status !== 'Hoàn thành' && p.status !== 'Đóng hồ sơ').length;
-  const activeLawsuits = db.lawsuits.filter(l => l.status !== 'Hoàn thành' && l.status !== 'Đóng hồ sơ').length;
-  
-  const todayStr = new Date().toISOString().split('T')[0];
-  const pendingTasks = db.tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy');
-  const overdueTasksCount = pendingTasks.filter(t => t.deadline < todayStr).length;
-
-  // Tính doanh thu, chi phí tháng này
-  const currentMonthStr = todayStr.substring(0, 7); // e.g. "2026-08"
-  const monthlyRevenue = db.revenues
-    .filter(r => r.date.startsWith(currentMonthStr))
-    .reduce((sum, r) => sum + r.amount, 0);
-  
-  const monthlyExpense = db.expenses
-    .filter(e => e.date.startsWith(currentMonthStr))
-    .reduce((sum, e) => sum + e.amount, 0);
-
-  const totalDebt = db.debts.reduce((sum, d) => sum + d.remainAmount, 0);
-  
-  // Lịch hẹn hôm nay
-  const schedulesToday = db.schedules.filter(s => s.dateTime.startsWith(todayStr));
-
-  // Hoạt động gần đây
-  const recentActivities = db.systemLogs.slice(0, 5);
-
-  res.json({
-    totalCustomers,
-    activeProfiles,
-    activeLawsuits,
-    overdueTasksCount,
-    monthlyRevenue,
-    monthlyExpense,
-    totalDebt,
-    schedulesToday,
-    recentActivities
-  });
-});
+app.use('/api/auth', authRouter);
 
 // ----------------------------------------------------
-// CUSTOMERS ROUTER
+// DASHBOARD ENDPOINT (Có RBAC)
 // ----------------------------------------------------
-app.get('/api/customers', (req: Request, res: Response) => {
-  res.json(db.customers);
-});
+app.get('/api/dashboard', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const currentMonthStr = todayStr.substring(0, 7);
 
-app.get('/api/customers/:id', (req: Request, res: Response) => {
-  const customer = db.customers.find(c => c.id === req.params.id);
-  if (!customer) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
-  
-  // Lấy chi tiết liên quan
-  const profiles = db.serviceProfiles.filter(p => p.customerId === customer.id);
-  const lawsuits = db.lawsuits.filter(l => l.customerId === customer.id);
-  const contracts = db.contracts.filter(c => c.customerId === customer.id);
-  const debts = db.debts.filter(d => d.customerId === customer.id);
-  const revenues = db.revenues.filter(r => r.customerId === customer.id);
-  const schedules = db.schedules.filter(s => s.customerId === customer.id);
+    // Xây dựng điều kiện lọc dữ liệu theo quyền RBAC
+    let profileWhere: any = {};
+    let lawsuitWhere: any = {};
+    let taskWhere: any = {};
 
-  res.json({
-    ...customer,
-    profiles,
-    lawsuits,
-    contracts,
-    debts,
-    revenues,
-    schedules
-  });
-});
-
-app.post('/api/customers', (req: Request, res: Response) => {
-  const newCustomer: Customer = {
-    id: `KH-${String(db.customers.length + 1).padStart(3, '0')}`,
-    createdAt: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.customers.push(newCustomer);
-  logAction('NV-001', 'Admin', 'Thêm khách hàng', newCustomer.name);
-  res.status(201).json(newCustomer);
-});
-
-app.put('/api/customers/:id', (req: Request, res: Response) => {
-  const index = db.customers.findIndex(c => c.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
-  
-  db.customers[index] = { ...db.customers[index], ...req.body };
-  logAction('NV-001', 'Admin', 'Cập nhật khách hàng', db.customers[index].name);
-  res.json(db.customers[index]);
-});
-
-app.delete('/api/customers/:id', (req: Request, res: Response) => {
-  const index = db.customers.findIndex(c => c.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
-  const deleted = db.customers.splice(index, 1)[0];
-  logAction('NV-001', 'Admin', 'Xóa khách hàng', deleted.name);
-  res.json({ message: 'Xóa khách hàng thành công' });
-});
-
-// ----------------------------------------------------
-// SERVICE PROFILES ROUTER
-// ----------------------------------------------------
-app.get('/api/service-profiles', (req: Request, res: Response) => {
-  res.json(db.serviceProfiles);
-});
-
-app.get('/api/service-profiles/:id', (req: Request, res: Response) => {
-  const profile = db.serviceProfiles.find(p => p.id === req.params.id);
-  if (!profile) return res.status(404).json({ message: 'Không tìm thấy hồ sơ' });
-  
-  const customer = db.customers.find(c => c.id === profile.customerId);
-  const manager = db.staff.find(s => s.id === profile.managerId);
-  const tasks = db.tasks.filter(t => t.profileId === profile.id);
-  const chatMessages = db.chatMessages.filter(msg => msg.channelType === 'profile' && msg.channelId === profile.id);
-  const documents = db.documents.filter(doc => doc.profileId === profile.id);
-  const revenues = db.revenues.filter(rev => rev.profileId === profile.id);
-  const expenses = db.expenses.filter(exp => exp.profileId === profile.id);
-  const debt = db.debts.find(d => d.profileId === profile.id);
-
-  res.json({
-    ...profile,
-    customer,
-    manager,
-    tasks,
-    chatMessages,
-    documents,
-    revenues,
-    expenses,
-    debt
-  });
-});
-
-app.post('/api/service-profiles', (req: Request, res: Response) => {
-  const id = `HS-2026-${String(db.serviceProfiles.length + 1).padStart(3, '0')}`;
-  const newProfile: ServiceProfile = {
-    id,
-    createdAt: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.serviceProfiles.push(newProfile);
-
-  // Tạo công nợ mặc định
-  const newDebt: Debt = {
-    id: `CN-${Date.now()}`,
-    customerId: newProfile.customerId,
-    profileId: newProfile.id,
-    totalAmount: newProfile.price,
-    paidAmount: 0,
-    remainAmount: newProfile.price,
-    deadline: newProfile.deadline,
-    status: 'Chưa thanh toán'
-  };
-  db.debts.push(newDebt);
-
-  logAction('NV-001', 'Admin', 'Tạo hồ sơ dịch vụ', newProfile.title);
-  res.status(201).json(newProfile);
-});
-
-app.put('/api/service-profiles/:id', (req: Request, res: Response) => {
-  const index = db.serviceProfiles.findIndex(p => p.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy hồ sơ' });
-  
-  db.serviceProfiles[index] = { ...db.serviceProfiles[index], ...req.body };
-  
-  // Cập nhật lại giá trị công nợ nếu đổi giá
-  const debt = db.debts.find(d => d.profileId === req.params.id);
-  if (debt) {
-    debt.totalAmount = db.serviceProfiles[index].price;
-    debt.remainAmount = debt.totalAmount - debt.paidAmount;
-    if (debt.remainAmount <= 0) debt.status = 'Đã thanh toán';
-    else if (debt.paidAmount > 0) debt.status = 'Đã thanh toán một phần';
-    else debt.status = 'Chưa thanh toán';
-  }
-
-  logAction('NV-001', 'Admin', 'Cập nhật hồ sơ dịch vụ', db.serviceProfiles[index].title);
-  res.json(db.serviceProfiles[index]);
-});
-
-// ----------------------------------------------------
-// LAWSUITS ROUTER
-// ----------------------------------------------------
-app.get('/api/lawsuits', (req: Request, res: Response) => {
-  res.json(db.lawsuits);
-});
-
-app.get('/api/lawsuits/:id', (req: Request, res: Response) => {
-  const lawsuit = db.lawsuits.find(l => l.id === req.params.id);
-  if (!lawsuit) return res.status(404).json({ message: 'Không tìm thấy vụ án' });
-
-  const customer = db.customers.find(c => c.id === lawsuit.customerId);
-  const lawyer = db.staff.find(s => s.id === lawsuit.lawyerId);
-  const support = db.staff.find(s => s.id === lawsuit.supportId);
-  const tasks = db.tasks.filter(t => t.lawsuitId === lawsuit.id);
-  const chatMessages = db.chatMessages.filter(msg => msg.channelType === 'lawsuit' && msg.channelId === lawsuit.id);
-  const documents = db.documents.filter(doc => doc.lawsuitId === lawsuit.id);
-  const revenues = db.revenues.filter(rev => rev.lawsuitId === lawsuit.id);
-  const expenses = db.expenses.filter(exp => exp.lawsuitId === lawsuit.id);
-  const debt = db.debts.find(d => d.lawsuitId === lawsuit.id);
-  const schedules = db.schedules.filter(s => s.lawsuitId === lawsuit.id);
-
-  res.json({
-    ...lawsuit,
-    customer,
-    lawyer,
-    support,
-    tasks,
-    chatMessages,
-    documents,
-    revenues,
-    expenses,
-    debt,
-    schedules
-  });
-});
-
-app.post('/api/lawsuits', (req: Request, res: Response) => {
-  const id = `VA-2026-${String(db.lawsuits.length + 1).padStart(3, '0')}`;
-  const newLawsuit: Lawsuit = {
-    id,
-    createdAt: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.lawsuits.push(newLawsuit);
-
-  // Tạo công nợ mặc định (ví dụ trị giá hợp đồng tố tụng ban đầu là 20M nếu chưa định giá, hoặc lấy từ req)
-  const price = req.body.price || 30000000;
-  const newDebt: Debt = {
-    id: `CN-${Date.now()}`,
-    customerId: newLawsuit.customerId,
-    lawsuitId: newLawsuit.id,
-    totalAmount: price,
-    paidAmount: 0,
-    remainAmount: price,
-    deadline: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
-    status: 'Chưa thanh toán'
-  };
-  db.debts.push(newDebt);
-
-  logAction('NV-001', 'Admin', 'Tạo vụ án tố tụng', newLawsuit.title);
-  res.status(201).json(newLawsuit);
-});
-
-app.put('/api/lawsuits/:id', (req: Request, res: Response) => {
-  const index = db.lawsuits.findIndex(l => l.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy vụ án' });
-  db.lawsuits[index] = { ...db.lawsuits[index], ...req.body };
-  logAction('NV-001', 'Admin', 'Cập nhật vụ án', db.lawsuits[index].title);
-  res.json(db.lawsuits[index]);
-});
-
-// ----------------------------------------------------
-// TASKS ROUTER
-// ----------------------------------------------------
-app.get('/api/tasks', (req: Request, res: Response) => {
-  // Tự động kiểm tra quá hạn trước khi trả về
-  const todayStr = new Date().toISOString().split('T')[0];
-  db.tasks.forEach(task => {
-    if (task.status !== 'Hoàn thành' && task.status !== 'Hủy' && task.deadline < todayStr) {
-      task.status = 'Quá hạn';
+    if (user.role === 'Nhân viên' || user.role === 'Luật sư') {
+      profileWhere = { managerId: user.id };
+      lawsuitWhere = { lawyerId: user.id };
+      taskWhere = { assigneeId: user.id };
+    } else if (user.role === 'Trưởng phòng') {
+      profileWhere = {
+        OR: [
+          { managerId: user.id },
+          { serviceType: user.departmentId === 'doanh-nghiep' ? 'Doanh nghiệp' : { not: 'Doanh nghiệp' } }
+        ]
+      };
+      lawsuitWhere = user.departmentId === 'to-tung' ? {} : { lawyerId: user.id };
+      taskWhere = { OR: [{ departmentId: user.departmentId }, { assigneeId: user.id }] };
     }
-  });
-  res.json(db.tasks);
-});
 
-app.get('/api/tasks/:id', (req: Request, res: Response) => {
-  const task = db.tasks.find(t => t.id === req.params.id);
-  if (!task) return res.status(404).json({ message: 'Không tìm thấy công việc' });
-  res.json(task);
-});
+    const totalCustomers = await prisma.customer.count();
+    const activeProfiles = await prisma.serviceProfile.count({
+      where: { ...profileWhere, status: { notIn: ['Hoàn thành', 'Đóng hồ sơ'] } }
+    });
+    const activeLawsuits = await prisma.lawsuit.count({
+      where: { ...lawsuitWhere, status: { notIn: ['Hoàn thành', 'Đóng hồ sơ'] } }
+    });
 
-app.post('/api/tasks', (req: Request, res: Response) => {
-  const newTask: Task = {
-    id: `CV-${Date.now()}`,
-    createdAt: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.tasks.push(newTask);
-  logAction('NV-001', 'Admin', 'Giao công việc mới', newTask.title);
-  res.status(201).json(newTask);
-});
+    const pendingTasks = await prisma.task.findMany({
+      where: { ...taskWhere, status: { notIn: ['Hoàn thành', 'Hủy'] } }
+    });
+    const overdueTasksCount = pendingTasks.filter(t => t.deadline < todayStr).length;
 
-app.put('/api/tasks/:id', (req: Request, res: Response) => {
-  const index = db.tasks.findIndex(t => t.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy công việc' });
-  db.tasks[index] = { ...db.tasks[index], ...req.body };
-  logAction('NV-001', 'Admin', 'Cập nhật công việc', db.tasks[index].title);
-  res.json(db.tasks[index]);
-});
+    // Doanh thu & chi phí (Chỉ thống kê nếu có quyền tài chính)
+    let monthlyRevenue = 0;
+    let monthlyExpense = 0;
+    let totalDebt = 0;
 
-app.delete('/api/tasks/:id', (req: Request, res: Response) => {
-  const index = db.tasks.findIndex(t => t.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy công việc' });
-  db.tasks.splice(index, 1);
-  res.json({ message: 'Xóa công việc thành công' });
-});
+    if (isManagerOrAdminUser(user)) {
+      const revenues = await prisma.revenue.findMany({
+        where: { date: { startsWith: currentMonthStr } }
+      });
+      monthlyRevenue = revenues.reduce((sum, r) => sum + r.amount, 0);
 
-// ----------------------------------------------------
-// SCHEDULES ROUTER
-// ----------------------------------------------------
-app.get('/api/schedules', (req: Request, res: Response) => {
-  res.json(db.schedules);
-});
+      const expenses = await prisma.expense.findMany({
+        where: { date: { startsWith: currentMonthStr } }
+      });
+      monthlyExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-app.get('/api/schedules/:id', (req: Request, res: Response) => {
-  const schedule = db.schedules.find(s => s.id === req.params.id);
-  if (!schedule) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn' });
-  res.json(schedule);
-});
-
-app.post('/api/schedules', (req: Request, res: Response) => {
-  const newSchedule: Schedule = {
-    id: `L-${Date.now()}`,
-    ...req.body
-  };
-  db.schedules.push(newSchedule);
-  logAction('NV-001', 'Admin', 'Tạo lịch làm việc mới', newSchedule.title);
-  res.status(201).json(newSchedule);
-});
-
-app.put('/api/schedules/:id', (req: Request, res: Response) => {
-  const index = db.schedules.findIndex(s => s.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn' });
-  db.schedules[index] = { ...db.schedules[index], ...req.body };
-  res.json(db.schedules[index]);
-});
-
-app.delete('/api/schedules/:id', (req: Request, res: Response) => {
-  const index = db.schedules.findIndex(s => s.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn' });
-  db.schedules.splice(index, 1);
-  res.json({ message: 'Xóa lịch hẹn thành công' });
-});
-
-// ----------------------------------------------------
-// CHAT MESSAGES ROUTER
-// ----------------------------------------------------
-app.get('/api/chat', (req: Request, res: Response) => {
-  const { channelType, channelId } = req.query;
-  if (!channelType || !channelId) {
-    return res.json(db.chatMessages);
-  }
-  const messages = db.chatMessages.filter(
-    m => m.channelType === channelType && m.channelId === channelId
-  );
-  res.json(messages);
-});
-
-app.post('/api/chat', (req: Request, res: Response) => {
-  const sender = db.staff.find(s => s.id === req.body.senderId) || { name: 'Người dùng' };
-  const newMessage: ChatMessage = {
-    id: `MSG-${Date.now()}`,
-    senderName: sender.name,
-    createdAt: new Date().toISOString(),
-    ...req.body
-  };
-  db.chatMessages.push(newMessage);
-  res.status(201).json(newMessage);
-});
-
-// ----------------------------------------------------
-// DOCUMENTS ROUTER
-// ----------------------------------------------------
-app.get('/api/documents', (req: Request, res: Response) => {
-  res.json(db.documents);
-});
-
-app.post('/api/documents', (req: Request, res: Response) => {
-  const newDoc: Document = {
-    id: `DOC-${Date.now()}`,
-    createdAt: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.documents.push(newDoc);
-  logAction(newDoc.uploadedBy, 'Nhân viên', 'Tải lên tài liệu', newDoc.name);
-  res.status(201).json(newDoc);
-});
-
-// ----------------------------------------------------
-// REVENUE & EXPENSE ROUTER (Tài chính)
-// ----------------------------------------------------
-app.get('/api/revenues', (req: Request, res: Response) => {
-  res.json(db.revenues);
-});
-
-app.post('/api/revenues', (req: Request, res: Response) => {
-  const newRev: Revenue = {
-    id: `REV-${Date.now()}`,
-    date: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.revenues.push(newRev);
-
-  // Cập nhật công nợ tương ứng
-  const debt = db.debts.find(d => {
-    if (newRev.profileId) return d.profileId === newRev.profileId;
-    if (newRev.lawsuitId) return d.lawsuitId === newRev.lawsuitId;
-    return d.customerId === newRev.customerId && !d.profileId && !d.lawsuitId;
-  });
-
-  if (debt) {
-    debt.paidAmount += newRev.amount;
-    debt.remainAmount = debt.totalAmount - debt.paidAmount;
-    if (debt.remainAmount <= 0) {
-      debt.remainAmount = 0;
-      debt.status = 'Đã thanh toán';
-    } else {
-      debt.status = 'Đã thanh toán một phần';
+      const debts = await prisma.debt.findMany();
+      totalDebt = debts.reduce((sum, d) => sum + d.remainAmount, 0);
     }
+
+    const schedulesToday = await prisma.schedule.findMany({
+      where: { date: todayStr }
+    });
+
+    const recentActivities = await prisma.activityLog.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      totalCustomers,
+      activeProfiles,
+      activeLawsuits,
+      pendingTasksCount: pendingTasks.length,
+      overdueTasksCount,
+      monthlyRevenue,
+      monthlyExpense,
+      totalDebt,
+      schedulesToday,
+      recentActivities
+    });
+  } catch (error: any) {
+    console.error('Dashboard error:', error);
+    res.status(500).json({ error: 'Lỗi tải thống kê Dashboard từ CSDL MySQL' });
   }
-
-  logAction(newRev.collectorId, 'Kế toán', 'Ghi nhận doanh thu', `Thu ${newRev.amount.toLocaleString()}đ từ khách hàng`);
-  res.status(201).json(newRev);
 });
 
-app.get('/api/expenses', (req: Request, res: Response) => {
-  res.json(db.expenses);
-});
-
-app.post('/api/expenses', (req: Request, res: Response) => {
-  const newExp: Expense = {
-    id: `EXP-${Date.now()}`,
-    date: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.expenses.push(newExp);
-  logAction(newExp.spenderId, 'Nhân viên', 'Ghi nhận chi phí', `${newExp.content} (${newExp.amount.toLocaleString()}đ)`);
-  res.status(201).json(newExp);
-});
-
-app.get('/api/debts', (req: Request, res: Response) => {
-  // Cập nhật trạng thái quá hạn công nợ
-  const todayStr = new Date().toISOString().split('T')[0];
-  db.debts.forEach(d => {
-    if (d.status !== 'Đã thanh toán' && d.deadline < todayStr) {
-      d.status = 'Quá hạn';
-    }
+// ----------------------------------------------------
+// STAFF APIs (Quản lý Nhân sự - RBAC)
+// ----------------------------------------------------
+app.get('/api/staff', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const staff = await prisma.staff.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      departmentId: true,
+      phone: true,
+      hireDate: true,
+      status: true,
+      avatar: true
+    },
+    orderBy: { createdAt: 'desc' }
   });
-  res.json(db.debts);
-});
-
-// ----------------------------------------------------
-// CONTRACTS ROUTER
-// ----------------------------------------------------
-app.get('/api/contracts', (req: Request, res: Response) => {
-  res.json(db.contracts);
-});
-
-app.get('/api/contracts/:id', (req: Request, res: Response) => {
-  const contract = db.contracts.find(c => c.id === req.params.id);
-  if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
-  res.json(contract);
-});
-
-app.post('/api/contracts', (req: Request, res: Response) => {
-  const newContract: Contract = {
-    id: `HD-${Date.now()}`,
-    ...req.body
-  };
-  db.contracts.push(newContract);
-  logAction('NV-001', 'Admin', 'Tạo hợp đồng mới', newContract.title);
-  res.status(201).json(newContract);
-});
-
-app.put('/api/contracts/:id', (req: Request, res: Response) => {
-  const index = db.contracts.findIndex(c => c.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
-  db.contracts[index] = { ...db.contracts[index], ...req.body };
-  res.json(db.contracts[index]);
-});
-
-app.delete('/api/contracts/:id', (req: Request, res: Response) => {
-  const index = db.contracts.findIndex(c => c.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
-  db.contracts.splice(index, 1);
-  res.json({ message: 'Xóa hợp đồng thành công' });
-});
-
-// ----------------------------------------------------
-// STAFF & DEPARTMENTS ROUTER
-// ----------------------------------------------------
-app.get('/api/staff', (req: Request, res: Response) => {
-  res.json(db.staff);
-});
-
-app.get('/api/staff/:id', (req: Request, res: Response) => {
-  const staff = db.staff.find(s => s.id === req.params.id);
-  if (!staff) return res.status(404).json({ message: 'Không tìm thấy nhân viên' });
   res.json(staff);
 });
 
-app.post('/api/staff', (req: Request, res: Response) => {
-  const newId = `NV-${String(db.staff.length + 1).padStart(3, '0')}`;
-  const newStaff = { id: newId, ...req.body };
-  db.staff.push(newStaff);
-  res.status(201).json(newStaff);
+app.post('/api/staff', authenticateJWT, requireRole(['Giám đốc', 'Phó Giám đốc', 'Trưởng phòng']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const hashedPassword = await bcrypt.hash(data.password || '123456', 10);
+
+    const newStaff = await prisma.staff.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        role: data.role,
+        departmentId: data.departmentId,
+        phone: data.phone || '',
+        hireDate: data.hireDate || new Date().toISOString().split('T')[0],
+        status: data.status || 'Đang làm việc'
+      }
+    });
+
+    await logAction(req.user!.id, 'Thêm nhân sự mới', newStaff.name);
+    const { password, ...result } = newStaff;
+    res.status(201).json(result);
+  } catch (e: any) {
+    res.status(400).json({ error: 'Tạo nhân sự mới thất bại. Email có thể đã tồn tại.' });
+  }
 });
 
-app.put('/api/staff/:id', (req: Request, res: Response) => {
-  const index = db.staff.findIndex(s => s.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy nhân viên' });
-  db.staff[index] = { ...db.staff[index], ...req.body };
-  res.json(db.staff[index]);
-});
+app.put('/api/staff/:id', authenticateJWT, requireRole(['Giám đốc', 'Phó Giám đốc', 'Trưởng phòng']), async (req: AuthenticatedRequest, res: Response) => {
+  const id = String(req.params.id);
+  const data = req.body;
 
-app.delete('/api/staff/:id', (req: Request, res: Response) => {
-  const index = db.staff.findIndex(s => s.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy nhân viên' });
-  db.staff.splice(index, 1);
-  res.json({ message: 'Xóa nhân viên thành công' });
-});
+  try {
+    let updateData: any = { ...data };
+    if (data.password) {
+      updateData.password = await bcrypt.hash(data.password, 10);
+    }
 
-app.get('/api/departments', (req: Request, res: Response) => {
-  res.json(db.departments);
-});
+    const updated = await prisma.staff.update({
+      where: { id },
+      data: updateData
+    });
 
-app.get('/api/departments/:id', (req: Request, res: Response) => {
-  const dept = db.departments.find(d => d.id === req.params.id);
-  if (!dept) return res.status(404).json({ message: 'Không tìm thấy phòng ban' });
-  
-  const staff = db.staff.filter(s => s.departmentId === dept.id);
-  const tasks = db.tasks.filter(t => t.departmentId === dept.id);
-  const profiles = db.serviceProfiles.filter(p => {
-    const mgr = db.staff.find(s => s.id === p.managerId);
-    return mgr?.departmentId === dept.id;
-  });
-  const lawsuits = db.lawsuits.filter(l => {
-    const lawyer = db.staff.find(s => s.id === l.lawyerId);
-    return lawyer?.departmentId === dept.id;
-  });
-
-  res.json({
-    ...dept,
-    staff,
-    tasks,
-    profiles,
-    lawsuits
-  });
-});
-
-// ----------------------------------------------------
-// OTHER UTILITIES (Chấm công, Nghỉ phép, Logs)
-// ----------------------------------------------------
-app.get('/api/timekeeping', (req: Request, res: Response) => {
-  res.json(db.timekeeping);
-});
-
-app.post('/api/timekeeping', (req: Request, res: Response) => {
-  const newTk = {
-    id: `CC-${Date.now()}`,
-    date: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.timekeeping.push(newTk);
-  res.status(201).json(newTk);
-});
-
-app.get('/api/leave-requests', (req: Request, res: Response) => {
-  res.json(db.leaveRequests);
-});
-
-app.post('/api/leave-requests', (req: Request, res: Response) => {
-  const newLeave = {
-    id: `NP-${Date.now()}`,
-    ...req.body
-  };
-  db.leaveRequests.push(newLeave);
-  res.status(201).json(newLeave);
-});
-
-app.put('/api/leave-requests/:id', (req: Request, res: Response) => {
-  const index = db.leaveRequests.findIndex(l => l.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy đơn xin nghỉ' });
-  db.leaveRequests[index] = { ...db.leaveRequests[index], ...req.body };
-  res.json(db.leaveRequests[index]);
-});
-
-app.get('/api/logs', (req: Request, res: Response) => {
-  res.json(db.systemLogs);
-});
-
-// Health check cho Vercel
-app.get('/', (req: Request, res: Response) => {
-  res.json({ status: 'ok', message: 'LawFirm ERP Backend is running' });
+    await logAction(req.user!.id, 'Cập nhật nhân sự', updated.name);
+    const { password, ...result } = updated;
+    res.json(result);
+  } catch (e: any) {
+    res.status(400).json({ error: 'Cập nhật nhân sự thất bại' });
+  }
 });
 
 // ----------------------------------------------------
-// START SERVER - chỉ chạy khi không ở môi trường Vercel/serverless
+// CUSTOMERS APIs
 // ----------------------------------------------------
-if (!process.env.VERCEL) {
-  app.listen(port, () => {
-    console.log(`Backend server running at http://localhost:${port}`);
+app.get('/api/customers', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const customers = await prisma.customer.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(customers);
+});
+
+app.post('/api/customers', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newCust = await prisma.customer.create({
+      data: {
+        name: data.name,
+        type: data.type || 'Cá nhân',
+        phone: data.phone || '',
+        email: data.email || '',
+        address: data.address || '',
+        taxId: data.taxId || data.cccd || '',
+        representative: data.representative || ''
+      }
+    });
+    await logAction(req.user!.id, 'Tạo khách hàng mới', newCust.name);
+    res.status(201).json(newCust);
+  } catch (e) {
+    res.status(400).json({ error: 'Thêm khách hàng thất bại' });
+  }
+});
+
+// ----------------------------------------------------
+// SERVICE PROFILES APIs (Hồ sơ dịch vụ - RBAC)
+// ----------------------------------------------------
+app.get('/api/service-profiles', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  let whereCondition: any = {};
+
+  if (user.role === 'Nhân viên' || user.role === 'Luật sư') {
+    whereCondition = { managerId: user.id };
+  } else if (user.role === 'Trưởng phòng') {
+    whereCondition = {
+      OR: [
+        { managerId: user.id },
+        { serviceType: user.departmentId === 'doanh-nghiep' ? 'Doanh nghiệp' : { not: 'Doanh nghiệp' } }
+      ]
+    };
+  }
+
+  const profiles = await prisma.serviceProfile.findMany({
+    where: whereCondition,
+    orderBy: { createdAt: 'desc' }
   });
-}
+  res.json(profiles);
+});
+
+app.post('/api/service-profiles', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newProfile = await prisma.serviceProfile.create({
+      data: {
+        title: data.title,
+        customerId: data.customerId,
+        contractNumber: data.contractNumber || '',
+        serviceType: data.serviceType || 'Khác',
+        managerId: data.managerId || req.user!.id,
+        price: parseFloat(data.price || 0),
+        status: data.status || 'Mới tiếp nhận',
+        notes: data.notes || '',
+        receiveDate: data.receiveDate || new Date().toISOString().split('T')[0],
+        endDate: data.endDate || ''
+      }
+    });
+    await logAction(req.user!.id, 'Tạo hồ sơ dịch vụ', newProfile.title);
+    res.status(201).json(newProfile);
+  } catch (e) {
+    res.status(400).json({ error: 'Tạo hồ sơ dịch vụ thất bại' });
+  }
+});
+
+app.put('/api/service-profiles/:id', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const id = String(req.params.id);
+  const data = req.body;
+  try {
+    const updated = await prisma.serviceProfile.update({
+      where: { id },
+      data: {
+        ...(data.title && { title: data.title }),
+        ...(data.status && { status: data.status }),
+        ...(data.contractNumber !== undefined && { contractNumber: data.contractNumber }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.endDate !== undefined && { endDate: data.endDate }),
+        ...(data.price !== undefined && { price: parseFloat(data.price || 0) }),
+        ...(data.managerId && { managerId: data.managerId })
+      }
+    });
+    await logAction(req.user!.id, 'Cập nhật hồ sơ dịch vụ', updated.title);
+    res.json(updated);
+  } catch (e) {
+    res.status(400).json({ error: 'Cập nhật thất bại' });
+  }
+});
+
+// ----------------------------------------------------
+// LAWSUITS APIs (Vụ án tố tụng - RBAC)
+// ----------------------------------------------------
+app.get('/api/lawsuits', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  let whereCondition: any = {};
+
+  if (user.role === 'Nhân viên' || user.role === 'Luật sư') {
+    whereCondition = { lawyerId: user.id };
+  } else if (user.role === 'Trưởng phòng' && user.departmentId !== 'to-tung') {
+    whereCondition = { lawyerId: user.id };
+  }
+
+  const lawsuits = await prisma.lawsuit.findMany({
+    where: whereCondition,
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(lawsuits);
+});
+
+app.post('/api/lawsuits', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newLawsuit = await prisma.lawsuit.create({
+      data: {
+        title: data.title,
+        customerId: data.customerId,
+        contractNumber: data.contractNumber || '',
+        lawyerId: data.lawyerId || req.user!.id,
+        advancePayment: parseFloat(data.advancePayment || 0),
+        status: data.status || 'Mới tiếp nhận',
+        notes: data.notes || '',
+        receiveDate: data.receiveDate || new Date().toISOString().split('T')[0],
+        endDate: data.endDate || ''
+      }
+    });
+    await logAction(req.user!.id, 'Tạo vụ án mới', newLawsuit.title);
+    res.status(201).json(newLawsuit);
+  } catch (e) {
+    res.status(400).json({ error: 'Tạo vụ án thất bại' });
+  }
+});
+
+// ----------------------------------------------------
+// TASKS APIs (Công việc - RBAC)
+// ----------------------------------------------------
+app.get('/api/tasks', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user!;
+  let whereCondition: any = {};
+
+  if (user.role === 'Nhân viên' || user.role === 'Luật sư') {
+    whereCondition = { assigneeId: user.id };
+  } else if (user.role === 'Trưởng phòng') {
+    whereCondition = { OR: [{ departmentId: user.departmentId }, { assigneeId: user.id }] };
+  }
+
+  const tasks = await prisma.task.findMany({
+    where: whereCondition,
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(tasks);
+});
+
+app.post('/api/tasks', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newTask = await prisma.task.create({
+      data: {
+        title: data.title,
+        description: data.description || '',
+        assigneeId: data.assigneeId,
+        departmentId: data.departmentId || req.user!.departmentId,
+        deadline: data.deadline || new Date().toISOString().split('T')[0],
+        priority: data.priority || 'Trung bình',
+        status: data.status || 'Chưa bắt đầu'
+      }
+    });
+    await logAction(req.user!.id, 'Giao công việc mới', newTask.title);
+    res.status(201).json(newTask);
+  } catch (e) {
+    res.status(400).json({ error: 'Tạo công việc thất bại' });
+  }
+});
+
+// ----------------------------------------------------
+// REVENUES, EXPENSES, DEBTS APIs (Tài chính - Chỉ cho Admin/Manager)
+// ----------------------------------------------------
+app.get('/api/revenues', authenticateJWT, requireRole(['Giám đốc', 'Phó Giám đốc', 'Trưởng phòng']), async (req: AuthenticatedRequest, res: Response) => {
+  const revenues = await prisma.revenue.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(revenues);
+});
+
+app.post('/api/revenues', authenticateJWT, requireRole(['Giám đốc', 'Phó Giám đốc', 'Trưởng phòng']), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const newRev = await prisma.revenue.create({
+      data: {
+        customerId: data.customerId,
+        amount: parseFloat(data.amount || 0),
+        date: data.date || new Date().toISOString().split('T')[0],
+        paymentMethod: data.paymentMethod || 'Chuyển khoản',
+        notes: data.notes || ''
+      }
+    });
+    await logAction(req.user!.id, 'Ghi nhận doanh thu mới', `${newRev.amount.toLocaleString()}đ`);
+    res.status(201).json(newRev);
+  } catch (e) {
+    res.status(400).json({ error: 'Ghi nhận khoản thu thất bại' });
+  }
+});
+
+app.get('/api/expenses', authenticateJWT, requireRole(['Giám đốc', 'Phó Giám đốc', 'Trưởng phòng']), async (req: AuthenticatedRequest, res: Response) => {
+  const expenses = await prisma.expense.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(expenses);
+});
+
+app.get('/api/debts', authenticateJWT, requireRole(['Giám đốc', 'Phó Giám đốc', 'Trưởng phòng']), async (req: AuthenticatedRequest, res: Response) => {
+  const debts = await prisma.debt.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(debts);
+});
+
+// ----------------------------------------------------
+// CONTRACTS & SCHEDULES APIs
+// ----------------------------------------------------
+app.get('/api/contracts', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const contracts = await prisma.contract.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(contracts);
+});
+
+app.get('/api/schedules', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const schedules = await prisma.schedule.findMany({ orderBy: { createdAt: 'desc' } });
+  res.json(schedules);
+});
+
+app.get('/api/departments', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  const departments = await prisma.department.findMany();
+  res.json(departments);
+});
+
+// Node/Express Server listen
+app.listen(port, () => {
+  console.log(`🚀 Backend Express Server running with MySQL & Prisma ORM at http://localhost:${port}`);
+});
 
 export default app;
