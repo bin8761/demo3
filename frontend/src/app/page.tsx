@@ -1519,7 +1519,8 @@ export default function App() {
                             { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                             { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
                             { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
-                            { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
                             { title: 'Tình trạng', dataIndex: 'status', key: 'status', render: (s) => {
                               let color = 'blue';
                               if (s === 'Hoàn thành' || s === 'Đóng hồ sơ') color = 'green';
@@ -1542,7 +1543,8 @@ export default function App() {
                             { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                             { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
                             { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
-                            { title: 'Tên vụ án', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Nhân viên', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
                             { title: 'Tình trạng', dataIndex: 'status', key: 'status', render: (s) => <Tag color={s === 'Hoàn thành' || s === 'Đóng hồ sơ' ? 'green' : 'blue'}>{s}</Tag> },
                             { title: 'Lưu ý hồ sơ', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
                             { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
@@ -1561,7 +1563,8 @@ export default function App() {
                             { title: 'STT', key: 'stt', render: (_, __, i) => i + 1, width: 60 },
                             { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
                             { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
-                            { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                            { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
                             { title: 'Tình trạng', dataIndex: 'status', key: 'status', render: (s) => {
                               let color = 'blue';
                               if (s === 'Hoàn thành' || s === 'Đóng hồ sơ') color = 'green';
@@ -1645,10 +1648,10 @@ export default function App() {
                     columns={[
                       { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
-                      { title: 'Tên hồ sơ', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
                       { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
                       { title: 'Loại dịch vụ', dataIndex: 'serviceType', key: 'serviceType' },
-                      { title: 'Phụ trách', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
+                      { title: 'Nhân viên', dataIndex: 'managerId', key: 'managerId', render: (mid) => staff.find(s => s.id === mid)?.name || mid },
                       {
                         title: 'Tình trạng',
                         dataIndex: 'status',
@@ -1707,8 +1710,8 @@ export default function App() {
                       { title: 'STT', key: 'stt', render: (_, __, index) => index + 1, width: 60 },
                       { title: 'Khách hàng', dataIndex: 'customerId', key: 'customerId', render: (cid) => customers.find(c => c.id === cid)?.name || cid },
                       { title: 'Số hợp đồng', dataIndex: 'contractNumber', key: 'contractNumber', render: (v) => v || '—' },
-                      { title: 'Tên vụ án', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
-                      { title: 'LS phụ trách', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
+                      { title: 'Quan hệ pháp luật', dataIndex: 'title', key: 'title', render: (text) => <a>{text}</a> },
+                      { title: 'Nhân viên', dataIndex: 'lawyerId', key: 'lawyerId', render: (lid) => staff.find(s => s.id === lid)?.name || lid },
                       {
                         title: 'Tình trạng',
                         dataIndex: 'status',
