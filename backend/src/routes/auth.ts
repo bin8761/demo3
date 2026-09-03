@@ -92,7 +92,10 @@ router.get('/me', authenticateJWT, async (req: AuthenticatedRequest, res: Respon
     return res.status(404).json({ error: 'Không tìm thấy thông tin tài khoản' });
   }
 
-  // 4. POST /api/auth/register
+  return res.json({ user: staff });
+});
+
+// 4. POST /api/auth/register
 router.post('/register', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, email, password, role, departmentId } = req.body;
