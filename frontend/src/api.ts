@@ -2,10 +2,11 @@ import axios from 'axios';
 
 // Khi gom BE vào FE (single Vercel project): dùng '/api' cùng origin
 // Khi deploy BE riêng: set NEXT_PUBLIC_API_URL=https://your-backend.vercel.app/api
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
