@@ -1760,6 +1760,62 @@ export default function App() {
                 const completedProfilesCount = profiles.filter(p => p.status === 'Hoàn thành' || p.status === 'Đóng hồ sơ').length;
                 const totalDebtsCount = debts.reduce((acc, d) => acc + (d.remainAmount || 0), 0);
 
+                const handleExportExcel = () => {
+                  try {
+                    let csvContent = '\uFEFF'; // UTF-8 BOM cho Microsoft Excel đọc được tiếng Việt
+                    
+                    if (reportSubTab === 'dich-vu') {
+                      csvContent += 'STT,Ma Ho So,Khach Hang,Quan He Phap Luat,Nhan Vien Phu Trach,Gia Tri Dich Vu,Trang Thai,Ngay Tiep Nhan,Ngay Ket Thuc\n';
+                      profiles.filter(p => p.serviceType !== 'Doanh nghiệp').forEach((p, i) => {
+                        const cust = customers.find(c => c.id === p.customerId)?.name || p.customerId;
+                        const mgr = staff.find(s => s.id === p.managerId)?.name || p.managerId;
+                        csvContent += `"${i + 1}","${p.id}","${cust}","${p.title}","${mgr}","${p.price || 0}","${p.status}","${p.receiveDate}","${p.endDate || 'Chưa kết thúc'}"\n`;
+                      });
+                    } else if (reportSubTab === 'to-tung') {
+                      csvContent += 'STT,Ma Vu An,Khach Hang,Quan He Phap Luat,Nhan Vien Phu Trach,Tam Ung,Trang Thai,Ngay Tiep Nhan,Ngay Ket Thuc\n';
+                      lawsuits.forEach((l, i) => {
+                        const cust = customers.find(c => c.id === l.customerId)?.name || l.customerId;
+                        const lwr = staff.find(s => s.id === l.lawyerId)?.name || l.lawyerId;
+                        csvContent += `"${i + 1}","${l.id}","${cust}","${l.title}","${lwr}","${l.advancePayment || 0}","${l.status}","${l.receiveDate}","${l.endDate || 'Chưa kết thúc'}"\n`;
+                      });
+                    } else if (reportSubTab === 'doanh-nghiep') {
+                      csvContent += 'STT,Ma Ho So,Khach Hang,Quan He Phap Luat,Nhan Vien Phu Trach,Gia Tri,Trang Thai,Ngay Tiep Nhan,Ngay Ket Thuc\n';
+                      profiles.filter(p => p.serviceType === 'Doanh nghiệp').forEach((p, i) => {
+                        const cust = customers.find(c => c.id === p.customerId)?.name || p.customerId;
+                        const mgr = staff.find(s => s.id === p.managerId)?.name || p.managerId;
+                        csvContent += `"${i + 1}","${p.id}","${cust}","${p.title}","${mgr}","${p.price || 0}","${p.status}","${p.receiveDate}","${p.endDate || 'Chưa kết thúc'}"\n`;
+                      });
+                    } else if (reportSubTab === 'hieu-suat') {
+                      csvContent += 'STT,Ma NV,Ho Ten Nhan Vien,Chuc Vu,Phong Ban,So Ho So Dang Xu Ly,So Dau Viec Giao,Danh Gia\n';
+                      staff.forEach((s, i) => {
+                        const dept = departments.find(d => d.id === s.departmentId)?.name || s.departmentId;
+                        const pCount = profiles.filter(p => p.managerId === s.id).length + lawsuits.filter(l => l.lawyerId === s.id).length;
+                        const tCount = tasks.filter(t => t.assigneeId === s.id).length;
+                        csvContent += `"${i + 1}","${s.id}","${s.name}","${s.role}","${dept}","${pCount}","${tCount}","Xuất sắc"\n`;
+                      });
+                    } else {
+                      csvContent += 'STT,Ten Cong Viec,Nguoi Thuc Hien,Phong Ban,Han Chot,Muc Uu Tien,Trang Thai\n';
+                      tasks.forEach((t, i) => {
+                        const assign = staff.find(s => s.id === t.assigneeId)?.name || t.assigneeId;
+                        const dept = departments.find(d => d.id === t.departmentId)?.name || t.departmentId;
+                        csvContent += `"${i + 1}","${t.title}","${assign}","${dept}","${t.deadline}","${t.priority}","${t.status}"\n`;
+                      });
+                    }
+
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `Bao_Cao_Thang_${reportMonth}_${reportSubTab}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    messageApi.success(`Đã tự động xuất và tải file Excel báo cáo tháng ${reportMonth} về máy!`);
+                  } catch (e) {
+                    messageApi.error('Không thể xuất file Excel!');
+                  }
+                };
+
                 return (
                   <div className="space-y-6">
                     <Card
@@ -1782,11 +1838,11 @@ export default function App() {
                               { value: '2026-07', label: 'Tháng 07/2026' },
                             ]}
                           />
-                          <Button icon={<PrinterOutlined />} onClick={() => messageApi.info('Đang chuẩn bị bản in báo cáo...')}>
+                          <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
                             In báo cáo
                           </Button>
-                          <Button type="primary" icon={<DownloadOutlined />} onClick={() => messageApi.success('Đã xuất báo cáo tháng ra file Excel/PDF!')}>
-                            Xuất Excel/PDF
+                          <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportExcel}>
+                            Xuất Excel
                           </Button>
                         </Space>
                       }
