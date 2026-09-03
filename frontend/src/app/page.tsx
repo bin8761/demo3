@@ -59,7 +59,11 @@ import {
   ArrowLeftOutlined,
   BarChartOutlined,
   PrinterOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  LogoutOutlined,
+  LockOutlined,
+  MailOutlined,
+  KeyOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -90,7 +94,8 @@ import {
   financeApi,
   contractApi,
   hrApi,
-  logApi
+  logApi,
+  authApi
 } from '../api';
 
 const { Header, Sider, Content } = Layout;
@@ -522,6 +527,11 @@ export default function App() {
   const [companyEmail, setCompanyEmail] = useState('contact@lawfirm.com.vn');
   const [companyTaxId, setCompanyTaxId] = useState('0312345678');
 
+  // State Xác thực Đăng nhập & Đăng ký
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [loginLoading, setLoginLoading] = useState(false);
+
   const [companyForm] = Form.useForm();
 
   // State dữ liệu
@@ -599,8 +609,48 @@ export default function App() {
       if (savedEmail) setCompanyEmail(savedEmail);
       if (savedTaxId) setCompanyTaxId(savedTaxId);
     }
-    fetchData();
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const res = await authApi.me();
+      if (res && res.user) {
+        setCurrentUser(res.user);
+        setIsAuthenticated(true);
+        fetchData();
+      } else {
+        setIsAuthenticated(false);
+      }
+    } catch (e) {
+      setIsAuthenticated(false);
+    }
+  };
+
+  const handleLogin = async (values: any) => {
+    setLoginLoading(true);
+    try {
+      const res = await authApi.login(values);
+      if (res && res.user) {
+        setCurrentUser(res.user);
+        setIsAuthenticated(true);
+        messageApi.success(`Chào mừng ${res.user.name} (${res.user.role}) quay trở lại hệ thống!`);
+        fetchData();
+      }
+    } catch (err: any) {
+      messageApi.error(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra Email và Mật khẩu.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (e) {}
+    setIsAuthenticated(false);
+    messageApi.info('Đã đăng xuất khỏi hệ thống');
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -672,7 +722,7 @@ export default function App() {
       setTimekeeping(tkData);
       setLeaveRequests(lvData);
     } catch (error) {
-      messageApi.error('Không thể tải dữ liệu. Vui lòng tải lại trang.');
+      console.error('Fetch data error:', error);
     }
   };
 
@@ -993,6 +1043,125 @@ export default function App() {
     }
   };
 
+  if (isAuthenticated === false) {
+    return (
+      <ConfigProvider theme={customTheme}>
+        {contextHolder}
+        <div style={{
+          minHeight: '100vh',
+          background: darkMode ? '#0f172a' : 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1e40af 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 16px'
+        }}>
+          <Card style={{
+            width: '100%',
+            maxWidth: 480,
+            borderRadius: 16,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            backdropFilter: 'blur(20px)',
+            background: darkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ fontSize: 44, marginBottom: 8, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {companyLogo.startsWith('data:') || companyLogo.startsWith('http') || companyLogo.startsWith('/') ? (
+                  <img src={companyLogo} alt="Logo" style={{ width: 50, height: 50, objectFit: 'contain' }} />
+                ) : (
+                  companyLogo
+                )}
+              </div>
+              <Title level={3} style={{ margin: '4px 0 0 0', color: primaryColor }}>{companyName}</Title>
+              <Text type="secondary">Hệ thống Quản lý Công ty Luật & Doanh nghiệp</Text>
+            </div>
+
+            <Tabs
+              activeKey={authTab}
+              onChange={(key) => setAuthTab(key as any)}
+              centered
+              items={[
+                {
+                  key: 'login',
+                  label: '🔑 Đăng nhập hệ thống',
+                  children: (
+                    <Form layout="vertical" onFinish={handleLogin} style={{ marginTop: 16 }}>
+                      <Form.Item
+                        name="email"
+                        label="Email tài khoản"
+                        rules={[{ required: true, message: 'Vui lòng nhập Email' }]}
+                        initialValue="truong.nv@lawfirm.com"
+                      >
+                        <Input prefix={<MailOutlined style={{ opacity: 0.5 }} />} placeholder="truong.nv@lawfirm.com" size="large" />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="password"
+                        label="Mật khẩu"
+                        rules={[{ required: true, message: 'Vui lòng nhập Mật khẩu' }]}
+                        initialValue="123456"
+                      >
+                        <Input.Password prefix={<LockOutlined style={{ opacity: 0.5 }} />} placeholder="Mật khẩu" size="large" />
+                      </Form.Item>
+
+                      <Button type="primary" htmlType="submit" size="large" block loading={loginLoading} style={{ height: 46, fontSize: 16, fontWeight: 600 }}>
+                        Đăng nhập
+                      </Button>
+                    </Form>
+                  )
+                },
+                {
+                  key: 'register',
+                  label: '📝 Đăng ký tài khoản',
+                  children: (
+                    <Form layout="vertical" onFinish={async (values) => {
+                      messageApi.success('Đã gửi yêu cầu đăng ký! Bạn có thể sử dụng tài khoản để đăng nhập.');
+                      setAuthTab('login');
+                    }} style={{ marginTop: 16 }}>
+                      <Form.Item name="name" label="Họ và tên" rules={[{ required: true, message: 'Nhập họ tên' }]}>
+                        <Input placeholder="Nguyễn Văn Mới" size="large" />
+                      </Form.Item>
+                      <Form.Item name="email" label="Email làm việc" rules={[{ required: true, message: 'Nhập email' }]}>
+                        <Input placeholder="moi.nv@lawfirm.com" size="large" />
+                      </Form.Item>
+                      <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Nhập mật khẩu' }]}>
+                        <Input.Password placeholder="Mật khẩu ít nhất 6 ký tự" size="large" />
+                      </Form.Item>
+
+                      <Button type="primary" htmlType="submit" size="large" block style={{ height: 46, fontSize: 16, fontWeight: 600 }}>
+                        Tạo tài khoản mới
+                      </Button>
+                    </Form>
+                  )
+                }
+              ]}
+            />
+
+            <Divider style={{ margin: '20px 0 16px 0', fontSize: 13 }}>Đăng nhập nhanh Demo Accounts</Divider>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              <Button size="small" onClick={() => handleLogin({ email: 'truong.nv@lawfirm.com', password: '123456' })}>
+                👑 Giám đốc (Full)
+              </Button>
+              <Button size="small" onClick={() => handleLogin({ email: 'pho.tt@lawfirm.com', password: '123456' })}>
+                👔 Phó Giám đốc
+              </Button>
+              <Button size="small" onClick={() => handleLogin({ email: 'dich.lt@lawfirm.com', password: '123456' })}>
+                🏢 TP. Hồ sơ Dịch vụ
+              </Button>
+              <Button size="small" onClick={() => handleLogin({ email: 'luat.tv@lawfirm.com', password: '123456' })}>
+                ⚖️ TP. Hồ sơ Tố tụng
+              </Button>
+              <Button size="small" style={{ gridColumn: 'span 2' }} onClick={() => handleLogin({ email: 'su.hv@lawfirm.com', password: '123456' })}>
+                💼 Nhân viên / Luật sư (RBAC hạn chế)
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </ConfigProvider>
+    );
+  }
+
   // Cấu hình Items của Sidebar
   const sidebarItems = [
     { key: 'dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
@@ -1136,6 +1305,9 @@ export default function App() {
                     <span className="text-sm font-semibold leading-tight">{currentUser.name}</span>
                     <span className="text-xs text-gray-400">{currentUser.role}</span>
                   </div>
+                  <Tooltip title="Đăng xuất khỏi hệ thống">
+                    <Button icon={<LogoutOutlined />} danger type="text" onClick={handleLogout} />
+                  </Tooltip>
                 </div>
               </div>
             </Header>
@@ -2836,7 +3008,7 @@ export default function App() {
         <Modal
           title={`Chỉnh sửa ${detailModal.type === 'customer' ? 'Khách hàng' : detailModal.type === 'profile' ? 'Hồ sơ' : detailModal.type === 'lawsuit' ? 'Vụ án' : detailModal.type === 'staff' ? 'Nhân viên' : detailModal.type === 'task' ? 'Công việc' : detailModal.type === 'schedule' ? 'Lịch hẹn' : detailModal.type === 'contract' ? 'Hợp đồng' : 'Phòng ban'}`}
           open={detailModal.visible}
-          destroyOnClose
+          destroyOnHidden
           onCancel={() => { 
             setDetailModal({ visible: false, type: 'customer', data: null }); 
             setSelectedFile(null); 
