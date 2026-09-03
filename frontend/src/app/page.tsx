@@ -1460,12 +1460,12 @@ export default function App() {
                            ) : (
                              (stats.recentActivities || []).map((item: any) => (
                                <div key={item.id} className="flex gap-3 items-start p-3 rounded-lg border border-[var(--border)] bg-[hsla(0,0%,50%,0.02)]">
-                                 <Avatar>{item.staffName[0]}</Avatar>
+                                 <Avatar>{(item.staffName || item.staffId || 'NV')[0]}</Avatar>
                                  <div className="flex-1 min-w-0">
                                    <div className="flex justify-between items-center mb-1">
-                                     <Text strong className="text-sm">{item.staffName} - {item.action}</Text>
+                                     <Text strong className="text-sm">{(item.staffName || item.staffId || 'Nhân sự')} - {item.action}</Text>
                                      <Text type="secondary" className="text-xs">
-                                       {dayjs(item.timestamp).format('HH:mm DD/MM')}
+                                       {dayjs(item.createdAt || item.timestamp).format('HH:mm DD/MM')}
                                      </Text>
                                    </div>
                                    <div className="text-xs text-gray-500 truncate">{item.target}</div>
