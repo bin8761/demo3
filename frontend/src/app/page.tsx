@@ -746,9 +746,9 @@ export default function App() {
   const fetchChatMessages = async (type: string, id: string) => {
     try {
       const msgs = await chatApi.getMessages(type, id);
-      setChatMessages(msgs);
+      setChatMessages(Array.isArray(msgs) ? msgs : []);
     } catch (e) {
-      console.error(e);
+      setChatMessages([]);
     }
   };
 
