@@ -1413,7 +1413,7 @@ export default function App() {
                                    <Tag color="blue">{item.type}</Tag>
                                    <Text strong>{item.title}</Text>
                                  </div>
-                                 <Text type="secondary">{item.dateTime.split('T')[1]?.substring(0, 5)}</Text>
+                                 <Text type="secondary">{item.dateTime ? item.dateTime.split('T')[1]?.substring(0, 5) : (item.time || '')}</Text>
                                </div>
                              ))
                            )}
