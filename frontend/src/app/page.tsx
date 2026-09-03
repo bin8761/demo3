@@ -644,6 +644,23 @@ export default function App() {
     }
   };
 
+  const handleRegister = async (values: any) => {
+    setLoginLoading(true);
+    try {
+      const res = await authApi.register(values);
+      if (res && res.user) {
+        setCurrentUser(res.user);
+        setIsAuthenticated(true);
+        messageApi.success(`Đăng ký tài khoản mới thành công! Chào mừng ${res.user.name} gia nhập hệ thống.`);
+        fetchData();
+      }
+    } catch (err: any) {
+      messageApi.error(err.response?.data?.error || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await authApi.logout();
@@ -1114,10 +1131,7 @@ export default function App() {
                   key: 'register',
                   label: '📝 Đăng ký tài khoản',
                   children: (
-                    <Form layout="vertical" onFinish={async (values) => {
-                      messageApi.success('Đã gửi yêu cầu đăng ký! Bạn có thể sử dụng tài khoản để đăng nhập.');
-                      setAuthTab('login');
-                    }} style={{ marginTop: 16 }}>
+                    <Form layout="vertical" onFinish={handleRegister} style={{ marginTop: 16 }}>
                       <Form.Item name="name" label="Họ và tên" rules={[{ required: true, message: 'Nhập họ tên' }]}>
                         <Input placeholder="Nguyễn Văn Mới" size="large" />
                       </Form.Item>
@@ -1128,7 +1142,7 @@ export default function App() {
                         <Input.Password placeholder="Mật khẩu ít nhất 6 ký tự" size="large" />
                       </Form.Item>
 
-                      <Button type="primary" htmlType="submit" size="large" block style={{ height: 46, fontSize: 16, fontWeight: 600 }}>
+                      <Button type="primary" htmlType="submit" size="large" block loading={loginLoading} style={{ height: 46, fontSize: 16, fontWeight: 600 }}>
                         Tạo tài khoản mới
                       </Button>
                     </Form>
