@@ -552,7 +552,14 @@ export default function App() {
   const [debts, setDebts] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const defaultDepartments = [
+    { id: 'van-phong', name: 'Văn phòng & Hành chính', code: 'VP-HC', managerId: 'NV-001', description: 'Nhân sự, cơ cấu tổ chức, công văn, kỷ luật lao động, khen thưởng' },
+    { id: 'dich-vu', name: 'Phòng Hồ sơ Dịch vụ', code: 'HS-DV', managerId: 'NV-002', description: 'Xử lý các hồ sơ dịch vụ đất đai, hộ tịch, giấy phép...' },
+    { id: 'to-tung', name: 'Phòng Hồ sơ Tố tụng', code: 'HS-TT', managerId: 'NV-003', description: 'Tham gia tố tụng vụ án dân sự, hình sự, tranh chấp...' },
+    { id: 'doanh-nghiep', name: 'Phòng Hồ sơ Doanh nghiệp', code: 'HS-DN', managerId: 'NV-007', description: 'Thành lập, thay đổi đăng ký kinh doanh, giải thể doanh nghiệp...' },
+  ];
+
+  const [departments, setDepartments] = useState<any[]>(defaultDepartments);
   const [logs, setLogs] = useState<any[]>([]);
   const [timekeeping, setTimekeeping] = useState<any[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
@@ -734,7 +741,7 @@ export default function App() {
       setDebts(debtData || []);
       setContracts(contrData || []);
       setStaff(stData || []);
-      setDepartments(deptData || []);
+      setDepartments(deptData && deptData.length > 0 ? deptData : defaultDepartments);
       setLogs(logData || []);
       setTimekeeping(tkData || []);
       setLeaveRequests(lvData || []);
