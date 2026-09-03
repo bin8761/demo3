@@ -514,6 +514,16 @@ export default function App() {
   const [reportMonth, setReportMonth] = useState('2026-09');
   const [reportSubTab, setReportSubTab] = useState('dich-vu');
 
+  // State Thông tin doanh nghiệp
+  const [companyName, setCompanyName] = useState('LAWFIRM ERP');
+  const [companyLogo, setCompanyLogo] = useState('⚖️');
+  const [companyAddress, setCompanyAddress] = useState('123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh');
+  const [companyPhone, setCompanyPhone] = useState('028.1234.5678');
+  const [companyEmail, setCompanyEmail] = useState('contact@lawfirm.com.vn');
+  const [companyTaxId, setCompanyTaxId] = useState('0312345678');
+
+  const [companyForm] = Form.useForm();
+
   // State dữ liệu
   const [stats, setStats] = useState<any>({});
   const [customers, setCustomers] = useState<any[]>([]);
@@ -574,6 +584,21 @@ export default function App() {
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('app_company_name');
+      const savedLogo = localStorage.getItem('app_company_logo');
+      const savedAddress = localStorage.getItem('app_company_address');
+      const savedPhone = localStorage.getItem('app_company_phone');
+      const savedEmail = localStorage.getItem('app_company_email');
+      const savedTaxId = localStorage.getItem('app_company_tax');
+
+      if (savedName) setCompanyName(savedName);
+      if (savedLogo) setCompanyLogo(savedLogo);
+      if (savedAddress) setCompanyAddress(savedAddress);
+      if (savedPhone) setCompanyPhone(savedPhone);
+      if (savedEmail) setCompanyEmail(savedEmail);
+      if (savedTaxId) setCompanyTaxId(savedTaxId);
+    }
     fetchData();
   }, []);
 
@@ -1007,7 +1032,14 @@ export default function App() {
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--glass-border)]">
               <span className="text-xl font-bold tracking-wider flex items-center gap-2">
-                ⚖️ <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent font-black">LAWFIRM ERP</span>
+                {companyLogo.startsWith('data:') || companyLogo.startsWith('http') || companyLogo.startsWith('/') ? (
+                  <img src={companyLogo} alt="Logo" style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }} />
+                ) : (
+                  <span style={{ fontSize: 22 }}>{companyLogo}</span>
+                )}
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent font-black truncate max-w-[170px]" title={companyName}>
+                  {companyName}
+                </span>
               </span>
             </div>
 
@@ -2608,6 +2640,112 @@ export default function App() {
                   <Tabs
                     type="card"
                     items={[
+                      {
+                        key: 'company',
+                        label: '🏢 Thông tin doanh nghiệp',
+                        children: (
+                          <Card title="Cấu hình thông tin Doanh nghiệp & Logo" className="glass-panel">
+                            <Form
+                              form={companyForm}
+                              layout="vertical"
+                              initialValues={{
+                                name: companyName,
+                                logo: companyLogo,
+                                address: companyAddress,
+                                phone: companyPhone,
+                                email: companyEmail,
+                                taxId: companyTaxId
+                              }}
+                              onFinish={(values) => {
+                                setCompanyName(values.name);
+                                setCompanyLogo(values.logo);
+                                if (values.address) setCompanyAddress(values.address);
+                                if (values.phone) setCompanyPhone(values.phone);
+                                if (values.email) setCompanyEmail(values.email);
+                                if (values.taxId) setCompanyTaxId(values.taxId);
+
+                                if (typeof window !== 'undefined') {
+                                  localStorage.setItem('app_company_name', values.name);
+                                  localStorage.setItem('app_company_logo', values.logo);
+                                  localStorage.setItem('app_company_address', values.address || '');
+                                  localStorage.setItem('app_company_phone', values.phone || '');
+                                  localStorage.setItem('app_company_email', values.email || '');
+                                  localStorage.setItem('app_company_tax', values.taxId || '');
+                                }
+                                messageApi.success('Đã cập nhật tên và logo doanh nghiệp thành công!');
+                              }}
+                            >
+                              <Row gutter={16}>
+                                <Col xs={24} md={12}>
+                                  <Form.Item name="name" label="Tên doanh nghiệp / Công ty Luật" rules={[{ required: true, message: 'Vui lòng nhập tên công ty' }]}>
+                                    <Input placeholder="Ví dụ: CÔNG TY LUẬT NAM VIỆT" />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} md={12}>
+                                  <Form.Item name="logo" label="Logo / Biểu tượng thương hiệu" rules={[{ required: true, message: 'Vui lòng chọn logo hoặc nhập biểu tượng' }]}>
+                                    <Input placeholder="Nhập Emoji (vd: ⚖️, 🏛️, 🏢) hoặc đường dẫn/base64" />
+                                  </Form.Item>
+                                </Col>
+                                
+                                <Col span={24}>
+                                  <div style={{ marginBottom: 16, padding: 16, borderRadius: 12, background: 'rgba(22,119,255,0.05)', border: '1px solid rgba(22,119,255,0.2)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <Text strong>Logo xem trước:</Text>
+                                      {companyLogo.startsWith('data:') || companyLogo.startsWith('http') || companyLogo.startsWith('/') ? (
+                                        <img src={companyLogo} alt="Logo Preview" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 6, border: '1px solid #d9d9d9' }} />
+                                      ) : (
+                                        <span style={{ fontSize: 32 }}>{companyLogo}</span>
+                                      )}
+                                    </div>
+                                    <Divider type="vertical" style={{ height: 32 }} />
+                                    <Upload
+                                      accept="image/*"
+                                      showUploadList={false}
+                                      beforeUpload={(file) => {
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => {
+                                          const base64Url = e.target?.result as string;
+                                          companyForm.setFieldsValue({ logo: base64Url });
+                                          setCompanyLogo(base64Url);
+                                          messageApi.success('Đã tải ảnh logo từ máy tính lên preview!');
+                                        };
+                                        reader.readAsDataURL(file);
+                                        return false;
+                                      }}
+                                    >
+                                      <Button icon={<PaperClipOutlined />}>Chọn tệp logo từ máy (.png, .jpg)</Button>
+                                    </Upload>
+                                  </div>
+                                </Col>
+
+                                <Col xs={24} md={12}>
+                                  <Form.Item name="address" label="Địa chỉ trụ sở chính">
+                                    <Input placeholder="123 Nguyễn Huệ, Quận 1, TP.HCM" />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} md={12}>
+                                  <Form.Item name="phone" label="Số điện thoại hotline">
+                                    <Input placeholder="028 1234 5678" />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} md={12}>
+                                  <Form.Item name="email" label="Email doanh nghiệp">
+                                    <Input placeholder="contact@lawfirm.com" />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} md={12}>
+                                  <Form.Item name="taxId" label="Mã số thuế / Số ĐKKD">
+                                    <Input placeholder="0312345678" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                              <Button type="primary" htmlType="submit" icon={<PlusOutlined />} style={{ marginTop: 8 }}>
+                                Lưu thay đổi Doanh nghiệp
+                              </Button>
+                            </Form>
+                          </Card>
+                        )
+                      },
                       {
                         key: 'timekeeping',
                         label: 'Chấm công',
