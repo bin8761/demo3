@@ -259,6 +259,7 @@ app.post('/api/service-profiles', authenticateJWT, async (req: AuthenticatedRequ
         serviceType: data.serviceType || 'Khác',
         managerId: data.managerId || req.user!.id,
         price: parseFloat(data.price || 0),
+        advancePayment: parseFloat(data.advancePayment || 0),
         status: data.status || 'Mới tiếp nhận',
         notes: data.notes || '',
         receiveDate: data.receiveDate || new Date().toISOString().split('T')[0],
@@ -285,6 +286,7 @@ app.put('/api/service-profiles/:id', authenticateJWT, async (req: AuthenticatedR
         ...(data.notes !== undefined && { notes: data.notes }),
         ...(data.endDate !== undefined && { endDate: data.endDate }),
         ...(data.price !== undefined && { price: parseFloat(data.price || 0) }),
+        ...(data.advancePayment !== undefined && { advancePayment: parseFloat(data.advancePayment || 0) }),
         ...(data.managerId && { managerId: data.managerId })
       }
     });

@@ -1759,7 +1759,8 @@ export default function App() {
                               if (s === 'Chờ bổ sung') color = 'orange';
                               return <Tag color={color}>{s}</Tag>;
                             }},
-                            { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                            { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '0đ' },
+                      { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
                             { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                           ]}
                         />
@@ -1803,7 +1804,8 @@ export default function App() {
                               if (s === 'Chờ bổ sung') color = 'orange';
                               return <Tag color={color}>{s}</Tag>;
                             }},
-                            { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
+                            { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '0đ' },
+                      { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
                             { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                           ]}
                         />
@@ -1895,6 +1897,7 @@ export default function App() {
                           return <Tag color={color}>{s}</Tag>;
                         }
                       },
+                      { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '0đ' },
                       { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
                       { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                       {
@@ -1956,6 +1959,7 @@ export default function App() {
                         }
                       },
                       { title: 'Giá dịch vụ', dataIndex: 'price', key: 'price', render: (v) => v ? `${v.toLocaleString()}đ` : '—' },
+                      { title: 'Tạm ứng', dataIndex: 'advancePayment', key: 'advancePayment', render: (v) => v ? `${v.toLocaleString()}đ` : '0đ' },
                       { title: 'Lưu ý', dataIndex: 'notes', key: 'notes', ellipsis: true, render: (v) => v || '—' },
                       { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (v) => v || 'Chưa kết thúc' },
                       {
@@ -3876,6 +3880,9 @@ export default function App() {
                 <Form.Item name="deadline" label="Hạn xử lý" rules={[{ required: true }]}>
                   <DatePicker className="w-full" />
                 </Form.Item>
+                <Form.Item name="advancePayment" label="Số tiền tạm ứng (VND)" initialValue={0}>
+                  <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
+                </Form.Item>
                 <Form.Item name="price" label="Giá trị dịch vụ (VND)" rules={[{ required: true }]}>
                   <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
                 </Form.Item>
@@ -3910,6 +3917,9 @@ export default function App() {
                 </Form.Item>
                 <Form.Item name="deadline" label="Hạn xử lý" rules={[{ required: true }]}>
                   <DatePicker className="w-full" />
+                </Form.Item>
+                <Form.Item name="advancePayment" label="Số tiền tạm ứng (VND)" initialValue={0}>
+                  <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />
                 </Form.Item>
                 <Form.Item name="price" label="Giá trị dịch vụ (VND)" rules={[{ required: true }]}>
                   <InputNumber className="w-full" min={0} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') as any} parser={(v) => (v ? v.replace(/\$\s?|(,*)/g, '') : '') as any} />

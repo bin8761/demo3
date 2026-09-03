@@ -50,6 +50,7 @@ model ServiceProfile {
   serviceType    String
   managerId      String
   price          Float    @default(0)
+  advancePayment Float?   @default(0)
   status         String
   notes          String?  @db.Text
   receiveDate    String
