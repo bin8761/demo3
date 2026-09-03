@@ -2883,7 +2883,7 @@ export default function App() {
                                         <span style={{ fontSize: 32 }}>{companyLogo}</span>
                                       )}
                                     </div>
-                                    <Divider type="vertical" style={{ height: 32 }} />
+                                    <div style={{ width: 1, height: 32, backgroundColor: 'rgba(128,128,128,0.2)', margin: '0 8px' }} />
                                     <Upload
                                       accept="image/*"
                                       showUploadList={false}
